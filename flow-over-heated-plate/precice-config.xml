@@ -47,12 +47,12 @@
 
     <m2n:sockets from="Fluid" to="Solid" network="ib0" exchange-directory="../"/>
 
-    <coupling-scheme:serial-explicit>
+    <coupling-scheme:parallel-explicit>
       <time-window-size value="0.01" />
       <max-time value="1.01" />
       <participants first="Fluid" second="Solid" />
       <exchange data="Heat-Flux" mesh="Fluid-Mesh" from="Fluid" to="Solid" />
       <exchange data="Temperature" mesh="Solid-Mesh" from="Solid" to="Fluid" />
-    </coupling-scheme:serial-explicit>
+    </coupling-scheme:parallel-explicit>
   </solver-interface>
 </precice-configuration>
