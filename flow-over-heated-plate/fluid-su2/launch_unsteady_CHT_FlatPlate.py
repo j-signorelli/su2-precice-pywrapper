@@ -50,7 +50,7 @@ def main():
                     help="Specify if we need to initialize MPI", dest="with_MPI", default=False)
   parser.add_option("-p", "--precice-participant", dest="precice_name", help="Specify preCICE participant name", default="Fluid" )
   parser.add_option("-c", "--precice-config", dest="precice_config", help="Specify preCICE config file", default="../precice-config.xml")
-
+  parser.add_option("-m", "--precice-mesh", dest="precice_mesh", help="Specify the preCICE mesh name", default="Fluid-Mesh")
 
   (options, args) = parser.parse_args()
   options.nDim = int(2) # Specify dimension here
@@ -91,6 +91,12 @@ def main():
     print("SU2 and preCICE dimensions are not the same! Exiting")
     return
   
+  # Get mesh ID
+  try:
+    meshID = interface.get_mesh_id(options.precice_mesh)
+  except:
+    print("Invalid or no preCICE mesh name provided")
+    return
 
   CHTMarkerID = None
   CHTMarker = 'interface' # Name of CHT marker to couple
@@ -132,6 +138,12 @@ def main():
     comm.Barrier()
 
   while (TimeIter < nTimeIter):
+
+    # Update timestep based on preCICE
+    deltaT = SU2Driver.GetUnsteady_TimeStep()
+    deltaT = min(precice_deltaT, deltaT)
+    SU2Driver.SetUnsteady_TimeStep(deltaT)
+
     # Time iteration preprocessing
     SU2Driver.Preprocess(TimeIter)
     # Define the homogeneous unsteady wall temperature on the structure (user defined)
@@ -151,6 +163,11 @@ def main():
     SU2Driver.Update()
     # Monitor the solver and output solution to file if required
     stopCalc = SU2Driver.Monitor(TimeIter)
+
+    # Advance preCICE
+    precice_deltaT = interface.advance(deltaT)
+
+
     SU2Driver.Output(TimeIter)
     if (stopCalc == True):
       break
@@ -158,6 +175,8 @@ def main():
     TimeIter += 1
     time += deltaT
 
+  interface.finalize()
+  
   if SU2Driver != None:
     del SU2Driver
 

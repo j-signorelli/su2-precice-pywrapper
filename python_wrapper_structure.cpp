@@ -1,7 +1,9 @@
 /*!
+ *
+ *
  * \file python_wrapper_structure.cpp
- * \brief Driver subroutines that are used by the Python wrapper. Those routines are usually called from an external Python environment.
- * \author D. Thomas
+ * \brief Driver subroutines that are used by the Python wrapper. Those routines are usually called from an external Python environment. Updated to include preCICE-relevant functionality.
+ * \author D. Thomas, J. Signorelli
  * \version 7.5.0 "Blackbird"
  *
  * SU2 Project Website: https://su2code.github.io
@@ -275,12 +277,19 @@ unsigned long CDriver::GetTime_Iter() const{
 
 passivedouble CDriver::GetUnsteady_TimeStep() const {
 
-  return SU2_TYPE::GetValue(config_container[ZONE_0]->GetTime_Step());
+  return SU2_TYPE::GetValue(config_container[ZONE_0]->GetDelta_UnstTime());
+  // Changed to GetDelta_UnstTime(), as this is not the initial time step but the ACTUAL time step that is used
 }
 
 string CDriver::GetSurfaceFileName() const {
 
   return config_container[ZONE_0]->GetSurfCoeff_FileName();
+}
+//////////////////////////////////////////////////////////////////////////////////
+/* Functions to set global parameters in SU2 (time steps, delta t, ecc...) */
+//////////////////////////////////////////////////////////////////////////////////
+void CDriver::SetUnsteady_TimeStep(passivedouble val_delta_unsttime) {
+    config_container[ZONE_0]->SetDelta_UnstTimeND(val_delta_unsttime / config_container[ZONE_0]->GetTime_Ref());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
