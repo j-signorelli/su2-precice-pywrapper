@@ -48,9 +48,13 @@ def main():
   parser.add_option("-f", "--file", dest="filename", help="Read config from FILE", metavar="FILE")
   parser.add_option("--parallel", action="store_true",
                     help="Specify if we need to initialize MPI", dest="with_MPI", default=False)
+
+  # preCICE options with default settings
   parser.add_option("-p", "--precice-participant", dest="precice_name", help="Specify preCICE participant name", default="Fluid" )
   parser.add_option("-c", "--precice-config", dest="precice_config", help="Specify preCICE config file", default="../precice-config.xml")
   parser.add_option("-m", "--precice-mesh", dest="precice_mesh", help="Specify the preCICE mesh name", default="Fluid-Mesh")
+  parser.add_option("-r", "--precice-read", dest="precice_read", help="Specify the preCICE read data name", default="Temperature")
+  parser.add_option("-w", "--precice-write", dest="precice_write", help="Specify the preCICE write data name", default="Heat-Flux")
 
   (options, args) = parser.parse_args()
   options.nDim = int(2) # Specify dimension here
@@ -86,17 +90,11 @@ def main():
     print("There was an error configuring preCICE")
     return
   
-  # Check dimensions
+  # Check preCICE + SU2 dimensions
   if options.nDim != interface.get_dimensions():
     print("SU2 and preCICE dimensions are not the same! Exiting")
     return
-  
-  # Get mesh ID
-  try:
-    meshID = interface.get_mesh_id(options.precice_mesh)
-  except:
-    print("Invalid or no preCICE mesh name provided")
-    return
+
 
   CHTMarkerID = None
   CHTMarker = 'interface' # Name of CHT marker to couple
@@ -105,7 +103,7 @@ def main():
   CHTMarkerList =  SU2Driver.GetAllCHTMarkersTag()
 
   # Get all the markers defined on this rank and their associated indices.
-  allMarkerIDs = SU2Driver.GetAllBoundaryMarkers()
+  allMarkerIDs = SU2Driver.GetAllBoundaryMarkers() # Returns all markers defined on this rank
 
   #Check if the specified marker has a CHT option and if it exists on this rank.
   if CHTMarker in CHTMarkerList and CHTMarker in allMarkerIDs.keys():
@@ -116,10 +114,31 @@ def main():
   nVertex_CHTMarker_HALO = 0    #number of halo vertices
   nVertex_CHTMarker_PHYS = 0    #number of physical vertices
 
+  # If the CHT marker is defined on this rank:
   if CHTMarkerID != None:
-    nVertex_CHTMarker = SU2Driver.GetNumberVertices(CHTMarkerID)
+    nVertex_CHTMarker = SU2Driver.GetNumberVertices(CHTMarkerID) #Total number of vertices on the marker
     nVertex_CHTMarker_HALO = SU2Driver.GetNumberHaloVertices(CHTMarkerID)
-    nVertex_CHTMarker_PHYS = nVertex_CHTMarker - nVertex_CHTMarker_HALO
+    nVertex_CHTMarker_PHYS = nVertex_CHTMarker - nVertex_CHTMarker_HALO # Total number of vertices that "this" rank is computing
+
+  # Get preCICE mesh ID
+  try:
+    meshID = interface.get_mesh_id(options.precice_mesh)
+  except:
+    print("Invalid or no preCICE mesh name provided")
+    return
+
+  # Get coords of vertices
+  coords = numpy.zeros((nVertex_CHTMarker, options.nDim))
+  for iVertex in range(nVertex_CHTMarker):
+    for iDim in range(options.nDim):
+      coords[iVertex*options.nDim + iDim] = SU2Driver.GetInitialMeshCoord(CHTMarkerID, iVertex)
+
+  # Set mesh vertices in preCICE:
+  interface.set_mesh_vertices(mesh_id, coords)
+
+  # Get read and write data IDs
+  read_data_id = interface.get_data_id(options.precice_read, mesh_id)
+  write_data_id = interface.get_data_id(options.precice_write, mesh_id)
 
   # Retrieve some control parameters from the driver
   deltaT = SU2Driver.GetUnsteady_TimeStep()
@@ -130,7 +149,7 @@ def main():
   # Setup preCICE dt:
   precice_deltaT = interface.initialize()
 
-  # Time loop is defined in Python so that we have acces to SU2 functionalities at each time step
+  # Time loop is defined in Python so that we have access to SU2 functionalities at each time step
   if rank == 0:
     print("\n------------------------------ Begin Solver -----------------------------\n")
   sys.stdout.flush()
@@ -146,21 +165,28 @@ def main():
 
     # Time iteration preprocessing
     SU2Driver.Preprocess(TimeIter)
+
     # Define the homogeneous unsteady wall temperature on the structure (user defined)
     WallTemp = 300
     if TimeIter > 0:
       WallTemp = 310
+
     # Set this temperature to all the vertices on the specified CHT marker
     for iVertex in range(nVertex_CHTMarker):
       SU2Driver.SetVertexTemperature(CHTMarkerID, iVertex, WallTemp)
+
     # Tell the SU2 drive to update the boundary conditions
     SU2Driver.BoundaryConditionsUpdate()
+
     # Run one time iteration (e.g. dual-time)
     SU2Driver.Run()
+
     # Postprocess the solver and exit cleanly
     SU2Driver.Postprocess()
+
     # Update the solver for the next time iteration
     SU2Driver.Update()
+    
     # Monitor the solver and output solution to file if required
     stopCalc = SU2Driver.Monitor(TimeIter)
 
