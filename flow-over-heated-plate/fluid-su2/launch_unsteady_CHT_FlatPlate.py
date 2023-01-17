@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+
+## File edited to work coupled with preCICE - Joseph Signorelli
+
 ## \file launch_unsteady_CHT_FlatPlate.py
 #  \brief Python script to launch SU2_CFD with customized unsteady boundary conditions using the Python wrapper.
 #  \author David Thomas
@@ -33,7 +36,7 @@ import sys
 from optparse import OptionParser	# use a parser for configuration
 import pysu2			            # imports the SU2 wrapped module
 from math import *
-import precice
+import precice #import precice
 # -------------------------------------------------------------------
 #  Main
 # -------------------------------------------------------------------
@@ -45,10 +48,13 @@ def main():
   parser.add_option("-f", "--file", dest="filename", help="Read config from FILE", metavar="FILE")
   parser.add_option("--parallel", action="store_true",
                     help="Specify if we need to initialize MPI", dest="with_MPI", default=False)
+  parser.add_option("-p", "--precice-participant", dest="precice_name", help="Specify preCICE participant name", default="Fluid" )
+  parser.add_option("-c", "--precice-config", dest="precice_config", help="Specify preCICE config file", default="../precice-config.xml")
+
 
   (options, args) = parser.parse_args()
-  options.nDim = int(2)
-  options.nZone = int(1)
+  options.nDim = int(2) # Specify dimension here
+  options.nZone = int(1) # Specify number of zones here (1)
 
   # Import mpi4py for parallel run
   if options.with_MPI == True:
@@ -71,11 +77,23 @@ def main():
     return
 
 
-  # Setup preCICE:
+  # Configure preCICE:
+  print("Configuring preCICE...")
+  size = comm.Get_size()
+  try:
+    interface = precice.Interface(options.precice_name, options.precice_config, rank, size, comm)
+  except:
+    print("There was an error configuring preCICE")
+    return
+  
+  # Check dimensions
+  if options.nDim != interface.get_dimensions():
+    print("SU2 and preCICE dimensions are not the same! Exiting")
+    return
   
 
   CHTMarkerID = None
-  CHTMarker = 'wetSurface'       # Specified by the user
+  CHTMarker = 'interface' # Name of CHT marker to couple
 
   # Get all the tags with the CHT option
   CHTMarkerList =  SU2Driver.GetAllCHTMarkersTag()
@@ -102,6 +120,9 @@ def main():
   TimeIter = SU2Driver.GetTime_Iter()
   nTimeIter = SU2Driver.GetnTimeIter()
   time = TimeIter*deltaT
+
+  # Setup preCICE dt:
+  precice_deltaT = interface.initialize()
 
   # Time loop is defined in Python so that we have acces to SU2 functionalities at each time step
   if rank == 0:
