@@ -28,11 +28,11 @@ fi
 
 # Replace SU2 files
 printf "Replacing original python wrapper with updated one..."
-cp python_wrapper_structure.cpp $SU2_HOME/Common/src  || { printf >&2 "\nCannot copy updated wrapper over. Is variable SU2_HOME set correctly? Are you running the script from the correct directory?\nAborting.\n"; exit 1; }
-
+cp python_wrapper_structure.cpp $SU2_HOME/SU2_CFD/src  || { printf >&2 "\nCannot copy python_wrapper_structure.cpp over. Is variable SU2_HOME set correctly? Are you running the script from the correct directory?\nAborting.\n"; exit 1; }
+cp CDriver.hpp $SU2_HOME/SU2_CFD/include/drivers  || { printf >&2 "\nCannot copy CDriver.hpp over. Is variable SU2_HOME set correctly? Are you running the script from the correct directory?\nAborting.\n"; exit 1; }
 
 # Output to guide the user
 printf "\nPlease navigate to the SU2 home directory $SU2_HOME and all that you have to do is very simply run:\n"
 printf "\n\t\t./ninja -C build install\n\n"
 
-printf "Wrapper successfully copied over. Ideally required added functionalities are implemented in future version of SU2."
+printf "Wrapper successfully copied over. Ideally required added functionalities are implemented in future version of SU2.\n"
