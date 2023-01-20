@@ -37,6 +37,7 @@ from optparse import OptionParser	# use a parser for configuration
 import pysu2			            # imports the SU2 wrapped module
 from math import *
 import precice #import precice
+import numpy
 # -------------------------------------------------------------------
 #  Main
 # -------------------------------------------------------------------
