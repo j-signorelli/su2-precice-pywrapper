@@ -220,7 +220,8 @@ vector<passivedouble> CDriver::GetInitialMeshCoord(unsigned short iMarker, unsig
 
   auto iPoint = geometry_container[ZONE_0][INST_0][MESH_0]->vertex[iMarker][iVertex]->GetNode();
   for (auto iDim = 0 ; iDim < nDim ; iDim++){
-   coord[iDim] = solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->GetMesh_Coord(iPoint,iDim);
+   coord[iDim] = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->Get_Coord(iPoint,iDim); //solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->GetMesh_Coord(iPoint,iDim);
+    // CSolver object only instantiates coordinates if DEFORM_MESH= YES. This above works regardless, which is handy for CHT
   }
 
   coord_passive[0] = SU2_TYPE::GetValue(coord[0]);
