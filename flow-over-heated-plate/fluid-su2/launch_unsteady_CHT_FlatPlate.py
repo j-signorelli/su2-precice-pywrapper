@@ -126,7 +126,7 @@ def main():
 
   # Get preCICE mesh ID
   try:
-    meshID = interface.get_mesh_id(options.precice_mesh)
+    mesh_id = interface.get_mesh_id(options.precice_mesh)
   except:
     print("Invalid or no preCICE mesh name provided")
     return
@@ -159,16 +159,18 @@ def main():
   precice_deltaT = interface.initialize()
 
   # Set up initial data for preCICE
-  # NOTE: Must have initialize set to yes in preCICE config file
-  # preCICE automatically sets all coupling variables to 0. This is problematic for CHT, which is why below is important.
+  # NOTE: This would be required if we assume a nonzero initial heat flux to be sent to CHyPS for a parallel scheme.
+  # We do require that CHyPS initialize data, as in the config file
+  # preCICE automatically sets all coupling variables to 0
   if (interface.is_action_required(precice.action_write_initial_data())):
 
     for iVertex in range(nVertex_CHTMarker):
-      temperatures[i] = SU2Driver.GetVertexTemperature(CHTMarkerID, iVertex)
+      temperatures[iVertex] = SU2Driver.GetVertexTemperature(CHTMarkerID, iVertex)
 
     interface.write_block_scalar_data(write_data_id, vertex_ids, temperatures)
     interface.mark_action_fulfilled(precice.action_write_initial_data())
 
+  # interface.initialize_data() <-- Deprecated???
 
   # Time loop is defined in Python so that we have access to SU2 functionalities at each time step
   if rank == 0:
@@ -188,7 +190,7 @@ def main():
       # Retrieve data from preCICE, and change wall temperatures as needed
       temperatures = interface.read_block_scalar_data(read_data_id, vertex_ids) 
       for iVertex in range(nVertex_CHTMarker):
-        SU2Driver.SetVertexTemperature(CHTMarkerID, iVertex, temperatures[i])
+        SU2Driver.SetVertexTemperature(CHTMarkerID, iVertex, temperatures[iVertex])
 
       # Tell the SU2 drive to update the boundary conditions
       SU2Driver.BoundaryConditionsUpdate()
