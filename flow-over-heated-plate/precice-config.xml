@@ -52,7 +52,7 @@
       <max-time value="1.01" />
       <participants first="Fluid" second="Solid" />
       <exchange data="Heat-Flux" mesh="Fluid-Mesh" from="Fluid" to="Solid" />
-      <exchange data="Temperature" mesh="Solid-Mesh" from="Solid" to="Fluid" />
+      <exchange data="Temperature" mesh="Solid-Mesh" from="Solid" to="Fluid" initialize="yes"/>
     </coupling-scheme:parallel-explicit>
   </solver-interface>
 </precice-configuration>

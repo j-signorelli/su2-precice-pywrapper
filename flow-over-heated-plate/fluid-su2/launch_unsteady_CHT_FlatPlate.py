@@ -134,8 +134,9 @@ def main():
   # Get coords of vertices
   coords = numpy.zeros((nVertex_CHTMarker, options.nDim))
   for iVertex in range(nVertex_CHTMarker):
+    coord_passive = SU2Driver.GetInitialMeshCoord(CHTMarkerID, iVertex)
     for iDim in range(options.nDim):
-      coords[iVertex*options.nDim + iDim] = SU2Driver.GetInitialMeshCoord(CHTMarkerID, iVertex)
+      coords[iVertex*options.nDim + iDim] = coord_passive[iDim]
 
   # Set mesh vertices in preCICE:
   vertex_ids = interface.set_mesh_vertices(mesh_id, coords)
