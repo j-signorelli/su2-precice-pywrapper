@@ -231,7 +231,7 @@ def main():
         if SU2Driver.IsAHaloNode(CHTMarkerID, iVertex):
           heatFluxes[iVertex] = 0
         else:
-          heatFluxes[iVertex] = SU2Driver.GetVertexNormalHeatFlux(iMarker, iVertex)
+          heatFluxes[iVertex] = -SU2Driver.GetVertexNormalHeatFlux(CHTMarkerID, iVertex)
       
       # Write data to preCICE
       interface.write_block_scalar_data(write_data_id, vertex_ids, heatFluxes)
