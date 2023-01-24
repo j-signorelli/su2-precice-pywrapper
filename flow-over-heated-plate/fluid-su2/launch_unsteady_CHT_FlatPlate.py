@@ -84,10 +84,10 @@ def main():
 
 
   # Configure preCICE:
-  print("Configuring preCICE...")
+  #print("Configuring preCICE...") -- Messages appear to be hidden until sys.stdout.flush()
   size = comm.Get_size()
   try:
-    interface = precice.Interface(options.precice_name, options.precice_config, rank, size, comm)
+    interface = precice.Interface(options.precice_name, options.precice_config, rank, size)#, comm)
   except:
     print("There was an error configuring preCICE")
     return
@@ -117,11 +117,11 @@ def main():
   nVertex_CHTMarker_PHYS = 0    #number of physical vertices
 
   # If the CHT marker is defined on this rank:
-  # if CHTMarkerID != None:
+  if CHTMarkerID != None:
   #  nVertex_CHTMarker = SU2Driver.GetNumberVertices(CHTMarkerID) #Total number of vertices on the marker
   #  nVertex_CHTMarker_HALO = SU2Driver.GetNumberHaloVertices(CHTMarkerID)
   #  nVertex_CHTMarker_PHYS = nVertex_CHTMarker - nVertex_CHTMarker_HALO # Total number of vertices that "this" rank is computing
-  nVertex_CHTMarker = SU2Driver.GetNumberVertices(CHTMarkerID) #Total number of vertices on the marker
+    nVertex_CHTMarker = SU2Driver.GetNumberVertices(CHTMarkerID) #Total number of vertices on the marker
   # Note that the loop was never entered for other ranks previously.
   # I am not sure why PHYS is not what is used
 
@@ -237,7 +237,7 @@ def main():
       interface.write_block_scalar_data(write_data_id, vertex_ids, heatFluxes)
 
     # TODO: confirm that this is required
-    comm.Barrier() # ensure that all ranks caught up here first
+    #comm.Barrier() # ensure that all ranks caught up here first
 
     # Advance preCICE
     precice_deltaT = interface.advance(deltaT)
