@@ -111,20 +111,10 @@ def main():
   if CHTMarker in CHTMarkerList and CHTMarker in allMarkerIDs.keys():
     CHTMarkerID = allMarkerIDs[CHTMarker] # So: if CHTMarkerID != None, then it exists on this rank
 
-  # Number of vertices on the specified marker (per rank)
-  nVertex_CHTMarker = 0         #total number of vertices (physical + halo)
-  nVertex_CHTMarker_HALO = 0    #number of halo vertices
-  nVertex_CHTMarker_PHYS = 0    #number of physical vertices
-
   # If the CHT marker is defined on this rank:
-  ## TODO: PARALLELIZE MY WAY after running in serial successfully
   if CHTMarkerID != None:
-  #  nVertex_CHTMarker = SU2Driver.GetNumberVertices(CHTMarkerID) #Total number of vertices on the marker
-  #  nVertex_CHTMarker_HALO = SU2Driver.GetNumberHaloVertices(CHTMarkerID)
-  #  nVertex_CHTMarker_PHYS = nVertex_CHTMarker - nVertex_CHTMarker_HALO # Total number of vertices that "this" rank is computing
     nVertex_CHTMarker = SU2Driver.GetNumberVertices(CHTMarkerID) #Total number of vertices on the marker
-  # Note that the loop was never entered for other ranks previously.
-  # I am not sure why PHYS is not what is used
+
 
   # Get preCICE mesh ID
   try:
@@ -171,6 +161,7 @@ def main():
 
     interface.write_block_scalar_data(write_data_id, vertex_ids, temperatures)
     interface.mark_action_fulfilled(precice.action_write_initial_data())
+
   interface.initialize_data()
 
   # Sleep briefly
@@ -187,20 +178,15 @@ def main():
 
   while (TimeIter < nTimeIter):
 
-    # TODO: Adapter updates only if rank is working on wall (as is done in SU2 adapter)
-    # But question: why not just do this everywhere - shouldn't we?? Is it possible the adapter is written poorly
-    # The adapter updates the timestep everywhere. Why is it done like this. See above notes too.
-    if CHTMarkerID != None:
+    # Retrieve data from preCICE
+    temperatures = interface.read_block_scalar_data(read_data_id, vertex_ids) 
 
-      # Retrieve data from preCICE, and change wall temperatures as needed
-      temperatures = interface.read_block_scalar_data(read_data_id, vertex_ids) 
-      for iVertex in range(nVertex_CHTMarker):
+    # Set the updated temperatures
+    for iVertex in range(nVertex_CHTMarker):
         SU2Driver.SetVertexTemperature(CHTMarkerID, iVertex, temperatures[iVertex])
 
-      print(temperatures) # View and compare
-
-      # Tell the SU2 drive to update the boundary conditions
-      SU2Driver.BoundaryConditionsUpdate()
+    # Tell the SU2 drive to update the boundary conditions
+    SU2Driver.BoundaryConditionsUpdate()
 
     # Update timestep based on preCICE
     deltaT = SU2Driver.GetUnsteady_TimeStep()
@@ -222,30 +208,16 @@ def main():
     # Monitor the solver and output solution to file if required
     stopCalc = SU2Driver.Monitor(TimeIter)
     
-    # Write heat fluxes
-    # If rank is working on interface and write data required
-    if CHTMarkerID != None:
-      # Loop over the vertices
-      for iVertex in range(nVertex_CHTMarker):
-        # Follow SU2 adapter here first to be safe
-        # Avoid writing heat fluxes for duplicate nodes
-        # TODO: check if can just get indices of halo nodes once and save them for each rank. No clue how preCICE knows what rank is working on what nodes, but it does
-        # ^This would be a lot faster than needing to loop and check every single iteration
-        if SU2Driver.IsAHaloNode(CHTMarkerID, iVertex):
-          # THIS (SET TO ZERO) IS CAUSING ISSUES AS I FULLY EXPECTED!!
-          heatFluxes[iVertex] = -SU2Driver.GetVertexNormalHeatFlux(CHTMarkerID, iVertex)#0
-        else:
-          heatFluxes[iVertex] = -SU2Driver.GetVertexNormalHeatFlux(CHTMarkerID, iVertex)
+    # Loop over the vertices
+    for iVertex in range(nVertex_CHTMarker):
+      # Get heat fluxes at each vertex
+      heatFluxes[iVertex] = -SU2Driver.GetVertexNormalHeatFlux(CHTMarkerID, iVertex)
       
-      # Write data to preCICE
-      interface.write_block_scalar_data(write_data_id, vertex_ids, heatFluxes)
-
-    # TODO: confirm that this is required
-    #comm.Barrier() # ensure that all ranks caught up here first
+    # Write data to preCICE
+    interface.write_block_scalar_data(write_data_id, vertex_ids, heatFluxes)
 
     # Advance preCICE
     precice_deltaT = interface.advance(deltaT)
-
 
     SU2Driver.Output(TimeIter)
     if (stopCalc == True):
