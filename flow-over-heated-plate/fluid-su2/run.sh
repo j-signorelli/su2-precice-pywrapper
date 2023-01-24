@@ -1,4 +1,4 @@
-#!/bin/sh
+#!usr/bin/bash
 set -e -u
 
 # Set the working directory to be the one where this script is located
