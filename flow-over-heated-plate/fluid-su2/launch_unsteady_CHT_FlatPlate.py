@@ -117,6 +117,7 @@ def main():
   nVertex_CHTMarker_PHYS = 0    #number of physical vertices
 
   # If the CHT marker is defined on this rank:
+  ## TODO: PARALLELIZE MY WAY after running in serial successfully
   if CHTMarkerID != None:
   #  nVertex_CHTMarker = SU2Driver.GetNumberVertices(CHTMarkerID) #Total number of vertices on the marker
   #  nVertex_CHTMarker_HALO = SU2Driver.GetNumberHaloVertices(CHTMarkerID)
@@ -196,6 +197,8 @@ def main():
       for iVertex in range(nVertex_CHTMarker):
         SU2Driver.SetVertexTemperature(CHTMarkerID, iVertex, temperatures[iVertex])
 
+      print(temperatures) # View and compare
+
       # Tell the SU2 drive to update the boundary conditions
       SU2Driver.BoundaryConditionsUpdate()
 
@@ -229,7 +232,8 @@ def main():
         # TODO: check if can just get indices of halo nodes once and save them for each rank. No clue how preCICE knows what rank is working on what nodes, but it does
         # ^This would be a lot faster than needing to loop and check every single iteration
         if SU2Driver.IsAHaloNode(CHTMarkerID, iVertex):
-          heatFluxes[iVertex] = 0
+          # THIS (SET TO ZERO) IS CAUSING ISSUES AS I FULLY EXPECTED!!
+          heatFluxes[iVertex] = -SU2Driver.GetVertexNormalHeatFlux(CHTMarkerID, iVertex)#0
         else:
           heatFluxes[iVertex] = -SU2Driver.GetVertexNormalHeatFlux(CHTMarkerID, iVertex)
       
