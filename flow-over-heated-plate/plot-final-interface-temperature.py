@@ -45,7 +45,7 @@ cases = []
 #cases.append('openfoam')
 #cases.append('nutils')
 cases.append('chyps')
-case_labels = {'chyps': 'SU2-CHyPS'}
+case_labels = {'chyps': 'SU2-CHyPS',}
 styles = [':', '-', '--']
 colors = ['r', 'b', 'g', 'k']
 i = 0
