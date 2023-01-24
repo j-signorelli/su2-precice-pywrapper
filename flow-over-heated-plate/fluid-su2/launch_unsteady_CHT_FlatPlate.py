@@ -111,6 +111,8 @@ def main():
   if CHTMarker in CHTMarkerList and CHTMarker in allMarkerIDs.keys():
     CHTMarkerID = allMarkerIDs[CHTMarker] # So: if CHTMarkerID != None, then it exists on this rank
 
+  nVertex_CHTMarker = 0 # Number of vertices on rank
+
   # If the CHT marker is defined on this rank:
   if CHTMarkerID != None:
     nVertex_CHTMarker = SU2Driver.GetNumberVertices(CHTMarkerID) #Total number of vertices on the marker
