@@ -38,6 +38,7 @@ import pysu2			            # imports the SU2 wrapped module
 from math import *
 import precice #import precice
 import numpy
+from time import sleep
 # -------------------------------------------------------------------
 #  Main
 # -------------------------------------------------------------------
@@ -160,7 +161,7 @@ def main():
 
   # Set up initial data for preCICE
   # NOTE: This would be required if we assume a nonzero initial heat flux to be sent to CHyPS for a parallel scheme.
-  # We do require that CHyPS initialize data, as in the config file
+  # We do require that CHyPS initialize data, as in the config file, otherwise initial temperatures would be 0
   # preCICE automatically sets all coupling variables to 0
   if (interface.is_action_required(precice.action_write_initial_data())):
 
@@ -169,8 +170,11 @@ def main():
 
     interface.write_block_scalar_data(write_data_id, vertex_ids, temperatures)
     interface.mark_action_fulfilled(precice.action_write_initial_data())
+  interface.initialize_data()
 
-  # interface.initialize_data() <-- Deprecated???
+  # Sleep briefly
+  # This is critically important as I have found that initializeData is not called fast enough in CHyPS to be read here in time
+  sleep(3)
 
   # Time loop is defined in Python so that we have access to SU2 functionalities at each time step
   if rank == 0:
@@ -217,7 +221,7 @@ def main():
     
     # Write heat fluxes
     # If rank is working on interface and write data required
-    if CHTMarkerID != None and interface.write_data_required(deltaT):
+    if CHTMarkerID != None:
       # Loop over the vertices
       for iVertex in range(nVertex_CHTMarker):
         # Follow SU2 adapter here first to be safe
