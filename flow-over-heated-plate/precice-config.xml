@@ -34,7 +34,7 @@
     </participant>
 
     <participant name="Solid">
-      <export:vtk directory="preCICE-output" every-n-time-windows="50" />
+      <export:vtk directory="preCICE-output" every-n-time-windows="20" />
       <use-mesh name="Fluid-Mesh" from="Fluid" />
       <use-mesh name="Solid-Mesh" provide="yes" />
       <mapping:nearest-neighbor
@@ -49,8 +49,8 @@
     <m2n:sockets from="Fluid" to="Solid" network="ib0" exchange-directory="../"/>
 
     <coupling-scheme:serial-explicit>
-      <time-window-size value="0.001" />
-      <max-time value="1.01" />
+      <time-window-size value="0.005" />
+      <max-time value="1.00" />
       <participants first="Fluid" second="Solid" />
       <exchange data="Heat-Flux" mesh="Fluid-Mesh" from="Fluid" to="Solid" />
       <exchange data="Temperature" mesh="Solid-Mesh" from="Solid" to="Fluid" initialize="yes"/>

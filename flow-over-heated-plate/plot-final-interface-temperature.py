@@ -20,6 +20,7 @@ def vtk_to_dict(case):
     data_names = []
     i = 0
     max_i = data.GetPointData().GetNumberOfArrays()
+    data_id = False
     while i < max_i:
         this_data_name = data.GetPointData().GetArray(i).GetName()
         data_names.append(this_data_name)
