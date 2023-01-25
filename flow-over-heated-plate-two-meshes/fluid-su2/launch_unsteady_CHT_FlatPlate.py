@@ -179,6 +179,7 @@ def main():
 
   while (TimeIter < nTimeIter):
 
+    # TODO: add in isCouplingOngoing, isReadDataAvailable, isWriteRequired
     # Retrieve data from preCICE
     heatFluxes = interface.read_block_scalar_data(read_data_id, vertex_ids) 
 

@@ -178,18 +178,18 @@ def main():
     comm.Barrier()
 
 
-  while (TimeIter < nTimeIter):
+  while (not interface.isCouplingOngoing()):#TimeIter < nTimeIter):
 
-    if 
-    # Retrieve data from preCICE
-    temperatures = interface.read_block_scalar_data(read_data_id, vertex_ids) 
+    if (interface.is_read_data_available()):
+      # Retrieve data from preCICE
+      temperatures = interface.read_block_scalar_data(read_data_id, vertex_ids) 
 
-    # Set the updated temperatures
-    for iVertex in range(nVertex_CHTMarker):
-        SU2Driver.SetVertexTemperature(CHTMarkerID, iVertex, temperatures[iVertex])
+      # Set the updated temperatures
+      for iVertex in range(nVertex_CHTMarker):
+          SU2Driver.SetVertexTemperature(CHTMarkerID, iVertex, temperatures[iVertex])
 
-    # Tell the SU2 drive to update the boundary conditions
-    SU2Driver.BoundaryConditionsUpdate()
+      # Tell the SU2 drive to update the boundary conditions
+      SU2Driver.BoundaryConditionsUpdate()
 
     # Update timestep based on preCICE
     deltaT = SU2Driver.GetUnsteady_TimeStep()
@@ -211,13 +211,14 @@ def main():
     # Monitor the solver and output solution to file if required
     stopCalc = SU2Driver.Monitor(TimeIter)
     
-    # Loop over the vertices
-    for iVertex in range(nVertex_CHTMarker):
-      # Get heat fluxes at each vertex
-      heatFluxes[iVertex] = -SU2Driver.GetVertexNormalHeatFlux(CHTMarkerID, iVertex)
-      
-    # Write data to preCICE
-    interface.write_block_scalar_data(write_data_id, vertex_ids, heatFluxes)
+    if (interface.is_write_data_required()):
+      # Loop over the vertices
+      for iVertex in range(nVertex_CHTMarker):
+        # Get heat fluxes at each vertex
+        heatFluxes[iVertex] = -SU2Driver.GetVertexNormalHeatFlux(CHTMarkerID, iVertex)
+        
+      # Write data to preCICE
+      interface.write_block_scalar_data(write_data_id, vertex_ids, heatFluxes)
 
     # Advance preCICE
     precice_deltaT = interface.advance(deltaT)
