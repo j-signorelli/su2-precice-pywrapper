@@ -1,7 +1,5 @@
-# SU2 Python Wrapper Implementations + Verifications
+# SU2 Python Wrapper Adapter
 
-Created separately from preCICE tutorials because requires pywrapper updates in SU2 and also this currently cannot do implicit coupling.
-
-CHyPS also cannot handle implicit coupling. These CHT test cases do not need the su2-adapter to work. preCICE functionality implemented in Python.
+preCICE functionality implemented in Python with only minor updates made to the python wrapper in SU2 for it to work.
 
 Universal location of updated python wrapper and all test cases to verify functionality
