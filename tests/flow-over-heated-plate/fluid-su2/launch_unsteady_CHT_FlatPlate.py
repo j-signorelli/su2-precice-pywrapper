@@ -166,9 +166,6 @@ def main():
   precice_deltaT = interface.initialize()
 
   # Set up initial data for preCICE
-  # NOTE: This would be required if we assume a nonzero initial heat flux to be sent to CHyPS for a parallel scheme.
-  # We do require that CHyPS initialize data, as in the config file, otherwise initial temperatures would be 0
-  # preCICE automatically sets all coupling variables to 0
   if (interface.is_action_required(precice.action_write_initial_data())):
 
     for iVertex in iVertices_CHTMarker_PHYS:

@@ -50,7 +50,7 @@
 
     <coupling-scheme:serial-explicit>
       <time-window-size value="0.001" />
-      <max-time value="1.00" />
+      <max-time value="10.00" />
       <participants first="Fluid" second="Solid" />
       <exchange data="Heat-Flux" mesh="Fluid-Mesh" from="Fluid" to="Solid" />
       <exchange data="Temperature" mesh="Solid-Mesh" from="Solid" to="Fluid" initialize="yes"/>
