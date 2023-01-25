@@ -180,6 +180,7 @@ def main():
 
   while (TimeIter < nTimeIter):
 
+    if 
     # Retrieve data from preCICE
     temperatures = interface.read_block_scalar_data(read_data_id, vertex_ids) 
 
