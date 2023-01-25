@@ -178,7 +178,7 @@ def main():
     comm.Barrier()
 
 
-  while (not interface.isCouplingOngoing()):#TimeIter < nTimeIter):
+  while (not interface.is_coupling_ongoing()):#TimeIter < nTimeIter):
 
     if (interface.is_read_data_available()):
       # Retrieve data from preCICE
