@@ -178,7 +178,7 @@ def main():
     comm.Barrier()
 
 
-  while (not interface.is_coupling_ongoing()):#TimeIter < nTimeIter):
+  while (interface.is_coupling_ongoing()):#TimeIter < nTimeIter):
 
     if (interface.is_read_data_available()):
       # Retrieve data from preCICE
@@ -211,7 +211,7 @@ def main():
     # Monitor the solver and output solution to file if required
     stopCalc = SU2Driver.Monitor(TimeIter)
     
-    if (interface.is_write_data_required()):
+    if (interface.is_write_data_required(deltaT)):
       # Loop over the vertices
       for iVertex in range(nVertex_CHTMarker):
         # Get heat fluxes at each vertex
