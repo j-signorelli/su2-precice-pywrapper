@@ -110,13 +110,26 @@ def main():
   #Check if the specified marker has a CHT option and if it exists on this rank.
   if CHTMarker in CHTMarkerList and CHTMarker in allMarkerIDs.keys():
     CHTMarkerID = allMarkerIDs[CHTMarker] # So: if CHTMarkerID != None, then it exists on this rank
-
-  nVertex_CHTMarker = 0 # Number of vertices on rank
+  
+  # Number of vertices on the specified marker (per rank)
+  nVertex_CHTMarker = 0         #total number of vertices (physical + halo) on this rank
+  nVertex_CHTMarker_HALO = 0    #number of halo vertices
+  nVertex_CHTMarker_PHYS = 0    #number of physical vertices
+  iVertices_CHTMarker_PHYS = numpy.array([]) # indices of vertices this rank is working on
 
   # If the CHT marker is defined on this rank:
   if CHTMarkerID != None:
     nVertex_CHTMarker = SU2Driver.GetNumberVertices(CHTMarkerID) #Total number of vertices on the marker
+    nVertex_CHTMarker_HALO = SU2Driver.GetNumberHaloVertices(CHTMarkerID)
+    nVertex_CHTMarker_PHYS = nVertex_CHTMarker - nVertex_CHTMarker_HALO
+    iVertices_CHTMarker_PHYS = numpy.zeros(nVertex_CHTMarker_PHYS)
 
+    # Obtain indices of all vertices that are being worked on on this rank
+    i = 0
+    for iVertex in range(nVertex_CHTMarker):
+      if not SU2Driver.IsAHaloNode(CHTMarkerID, iVertex):
+        iVertices_CHTMarker_PHYS[i] = iVertex
+        i += 1
 
   # Get preCICE mesh ID
   try:
@@ -126,8 +139,8 @@ def main():
     return
 
   # Get coords of vertices
-  coords = numpy.zeros((nVertex_CHTMarker, options.nDim))
-  for iVertex in range(nVertex_CHTMarker):
+  coords = numpy.zeros((nVertex_CHTMarker_PHYS, options.nDim))
+  for iVertex in iVertices_CHTMarker_PHYS:
     coord_passive = SU2Driver.GetInitialMeshCoord(CHTMarkerID, iVertex)
     for iDim in range(options.nDim):
       coords[iVertex, iDim] = coord_passive[iDim]
@@ -140,8 +153,8 @@ def main():
   write_data_id = interface.get_data_id(options.precice_write, mesh_id)
 
   # Instantiate arrays to hold temperature + heat flux info
-  temperatures = numpy.zeros(nVertex_CHTMarker)
-  heatFluxes = numpy.zeros(nVertex_CHTMarker)
+  temperatures = numpy.zeros(nVertex_CHTMarker_PHYS)
+  heatFluxes = numpy.zeros(nVertex_CHTMarker_PHYS)
 
   # Retrieve some control parameters from the driver
   deltaT = SU2Driver.GetUnsteady_TimeStep()
@@ -158,7 +171,7 @@ def main():
   # preCICE automatically sets all coupling variables to 0
   if (interface.is_action_required(precice.action_write_initial_data())):
 
-    for iVertex in range(nVertex_CHTMarker):
+    for iVertex in iVertices_CHTMarker_PHYS:
       temperatures[iVertex] = SU2Driver.GetVertexTemperature(CHTMarkerID, iVertex)
 
     interface.write_block_scalar_data(write_data_id, vertex_ids, temperatures)
@@ -185,7 +198,7 @@ def main():
       temperatures = interface.read_block_scalar_data(read_data_id, vertex_ids) 
 
       # Set the updated temperatures
-      for iVertex in range(nVertex_CHTMarker):
+      for iVertex in iVertices_CHTMarker_PHYS:
           SU2Driver.SetVertexTemperature(CHTMarkerID, iVertex, temperatures[iVertex])
 
       # Tell the SU2 drive to update the boundary conditions
@@ -213,7 +226,7 @@ def main():
     
     if (interface.is_write_data_required(deltaT)):
       # Loop over the vertices
-      for iVertex in range(nVertex_CHTMarker):
+      for iVertex in iVertices_CHTMarker_PHYS:
         # Get heat fluxes at each vertex
         heatFluxes[iVertex] = -SU2Driver.GetVertexNormalHeatFlux(CHTMarkerID, iVertex)
         
