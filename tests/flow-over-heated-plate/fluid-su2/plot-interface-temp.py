@@ -9,22 +9,22 @@ def loadParallelCSVSeries(name):
   l = [(re.search("dt(\d+)_", s).group(1), s) for s in glob.glob(f"{name}.dt*_*.csv")]
   return pandas.concat([pandas.read_csv(file, sep=";").assign(dt=dt) for dt, file in l], ignore_index=True)
 
-def loadSeriesCSVSeries(name):
+def loadSerialCSVSeries(name):
   l = [(re.search(".dt(\d+).", s).group(1), s) for s in glob.glob(f"{name}.dt*.csv")]
   print(l)
   return pandas.concat([pandas.read_csv(file, sep=";").assign(dt=dt) for dt, file in l], ignore_index=True)
 
 def main():
-
+  parser=OptionParser()
   parser.add_option("-t", "--timestep", dest="dt", help="Timestep to plot", default=None)
-  parser.add_option("-m", "--mpi-active", dest="mpi", help="MPI = True, Serial = False", default=True)
+  parser.add_option("-m", "--mpi-active", dest="mpi", help="MPI = t, Serial = f", default="t")
 
   (options, args) = parser.parse_args()
   dt = options.dt
 
   data = 0
   try:
-    if options.mpi:
+    if booleanoptions.mpi == "t":
       data = loadParallelCSVSeries("preCICE-output/Fluid-Mesh-Fluid")
     else:
       data = loadSerialCSVSeries("preCICE-output/Fluid-Mesh-Fluid")
@@ -37,9 +37,8 @@ def main():
   # Extract timestep data
   try:
     if dt == None:
-      final_data = data.loc[data["dt"] == max(data["dt"])]
-    else:
-      final_data = data.loc[data["dt"] == float(dt)]
+      dt = max(data["dt"])
+    final_data = data.loc[data["dt"] == float(dt)]
   except:
     print("Invalid timestep input")
     print("Valid timesteps are: " + str(data["dt"]))
