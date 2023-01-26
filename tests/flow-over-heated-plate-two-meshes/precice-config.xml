@@ -28,12 +28,11 @@
       <export:csv directory="preCICE-output" every-n-time-windows="50" />
       <use-mesh name="Fluid-Mesh" provide="yes" />
       <use-mesh name="Solid-Mesh" from="Solid" />
-      <use-mesh name="Solid-Mesh-nodes" from="Solid" />
       <read-data name="Heat-Flux" mesh="Fluid-Mesh" />
       <write-data name="Temperature" mesh="Fluid-Mesh" />
       <mapping:nearest-neighbor
         direction="read"
-        from="Solid-Mesh"
+        from="Solid-Mesh-nodes"
         to="Fluid-Mesh"
         constraint="consistent" />
     </participant>
