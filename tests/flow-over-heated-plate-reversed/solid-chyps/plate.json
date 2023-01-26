@@ -60,16 +60,16 @@
           "type": "constant",
           "time_step": 0.001
         }
+      },
+      "Visualization" : {
+        "output_format": "paraview",
+        "frequency": 0.05
+      },
+      "Checkpoint": {
+        "output_name": "PlateSolution_Checkpoint",
+        "frequency": 0.05
+  
       }
-
-    },
-    "Visualization" : {
-      "output_format": "paraview",
-      "frequency": 0.05
-    },
-    "Checkpoint": {
-      "output_name": "PlateSolution_Checkpoint",
-      "frequency": 0.05
 
     },
     "FiniteElementDefinition": {

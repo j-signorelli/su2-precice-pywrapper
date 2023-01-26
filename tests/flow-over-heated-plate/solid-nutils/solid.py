@@ -110,7 +110,7 @@ def main():
             timestep = timestep_checkpoint
             interface.mark_action_fulfilled(precice.action_read_iteration_checkpoint())
         else:  # go to next timestep
-            if timestep % 20 == 0:  # visualize
+            if timestep % 50 == 0:  # visualize
                 bezier = domain.sample('bezier', 2)
                 x, u = bezier.eval(['x_i', 'u'] @ ns, lhs=lhs)
                 with treelog.add(treelog.DataLog()):
