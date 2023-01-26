@@ -115,20 +115,20 @@ def main():
   nVertex_CHTMarker = 0         #total number of vertices (physical + halo) on this rank
   nVertex_CHTMarker_HALO = 0    #number of halo vertices
   nVertex_CHTMarker_PHYS = 0    #number of physical vertices
-  iVertices_CHTMarker_PHYS = numpy.array([]) # indices of vertices this rank is working on
+  iVertices_CHTMarker_PHYS = [] # indices of vertices this rank is working on
 
   # If the CHT marker is defined on this rank:
   if CHTMarkerID != None:
     nVertex_CHTMarker = SU2Driver.GetNumberVertices(CHTMarkerID) #Total number of vertices on the marker
     nVertex_CHTMarker_HALO = SU2Driver.GetNumberHaloVertices(CHTMarkerID)
     nVertex_CHTMarker_PHYS = nVertex_CHTMarker - nVertex_CHTMarker_HALO
-    iVertices_CHTMarker_PHYS = numpy.zeros(nVertex_CHTMarker_PHYS)
+    iVertices_CHTMarker_PHYS = []# Datatypes must be primitive as input to SU2 wrapper code, not numpy.int8, numpy.int64, etc.. So a list is used
 
     # Obtain indices of all vertices that are being worked on on this rank
     i = 0
     for iVertex in range(nVertex_CHTMarker):
       if not SU2Driver.IsAHaloNode(CHTMarkerID, iVertex):
-        iVertices_CHTMarker_PHYS[i] = iVertex
+        iVertices_CHTMarker_PHYS.append(int(iVertex))
         i += 1
 
   # Get preCICE mesh ID
