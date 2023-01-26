@@ -196,7 +196,7 @@ def main():
 
       # Set the updated temperatures
       for i, iVertex in enumerate(iVertices_CHTMarker_PHYS):
-          SU2Driver.SetVertexNormalHeatFlux(CHTMarkerID, iVertex, -heatFluxes[i])
+          SU2Driver.SetVertexNormalHeatFlux(CHTMarkerID, iVertex, heatFluxes[i])
 
       # Tell the SU2 drive to update the boundary conditions
       SU2Driver.BoundaryConditionsUpdate()
