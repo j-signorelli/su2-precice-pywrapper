@@ -140,10 +140,10 @@ def main():
 
   # Get coords of vertices
   coords = numpy.zeros((nVertex_CHTMarker_PHYS, options.nDim))
-  for iVertex in iVertices_CHTMarker_PHYS:
+  for i, iVertex in enumerate(iVertices_CHTMarker_PHYS):
     coord_passive = SU2Driver.GetInitialMeshCoord(CHTMarkerID, iVertex)
     for iDim in range(options.nDim):
-      coords[iVertex, iDim] = coord_passive[iDim]
+      coords[i, iDim] = coord_passive[iDim]
 
   # Set mesh vertices in preCICE:
   vertex_ids = interface.set_mesh_vertices(mesh_id, coords)
@@ -168,8 +168,8 @@ def main():
   # Set up initial data for preCICE
   if (interface.is_action_required(precice.action_write_initial_data())):
 
-    for iVertex in iVertices_CHTMarker_PHYS:
-      temperatures[iVertex] = SU2Driver.GetVertexTemperature(CHTMarkerID, iVertex)
+    for i, iVertex in enumerate(iVertices_CHTMarker_PHYS):
+      temperatures[i] = SU2Driver.GetVertexTemperature(CHTMarkerID, iVertex)
 
     interface.write_block_scalar_data(write_data_id, vertex_ids, temperatures)
     interface.mark_action_fulfilled(precice.action_write_initial_data())
@@ -195,8 +195,8 @@ def main():
       temperatures = interface.read_block_scalar_data(read_data_id, vertex_ids) 
 
       # Set the updated temperatures
-      for iVertex in iVertices_CHTMarker_PHYS:
-          SU2Driver.SetVertexTemperature(CHTMarkerID, iVertex, temperatures[iVertex])
+      for i, iVertex in enumerate(iVertices_CHTMarker_PHYS):
+          SU2Driver.SetVertexTemperature(CHTMarkerID, iVertex, temperatures[i])
 
       # Tell the SU2 drive to update the boundary conditions
       SU2Driver.BoundaryConditionsUpdate()
@@ -223,9 +223,9 @@ def main():
     
     if (interface.is_write_data_required(deltaT)):
       # Loop over the vertices
-      for iVertex in iVertices_CHTMarker_PHYS:
+      for i, iVertex in enumerate(iVertices_CHTMarker_PHYS):
         # Get heat fluxes at each vertex
-        heatFluxes[iVertex] = -SU2Driver.GetVertexNormalHeatFlux(CHTMarkerID, iVertex)
+        heatFluxes[i] = -SU2Driver.GetVertexNormalHeatFlux(CHTMarkerID, iVertex)
         
       # Write data to preCICE
       interface.write_block_scalar_data(write_data_id, vertex_ids, heatFluxes)
