@@ -225,7 +225,7 @@ def main():
       # Loop over the vertices
       for i, iVertex in enumerate(iVertices_CHTMarker_PHYS):
         # Get heat fluxes at each vertex
-        temperatures[i] = -SU2Driver.GetVertexTemperature(CHTMarkerID, iVertex)
+        temperatures[i] = SU2Driver.GetVertexTemperature(CHTMarkerID, iVertex)
         
       # Write data to preCICE
       interface.write_block_scalar_data(write_data_id, vertex_ids, temperatures)

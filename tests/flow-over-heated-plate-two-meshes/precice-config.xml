@@ -32,7 +32,7 @@
       <write-data name="Temperature" mesh="Fluid-Mesh" />
       <mapping:nearest-neighbor
         direction="read"
-        from="Solid-Mesh-nodes"
+        from="Solid-Mesh"
         to="Fluid-Mesh"
         constraint="consistent" />
     </participant>
