@@ -17,15 +17,11 @@
     </mesh>
 
     <mesh name="Solid-Mesh">
+      <use-data name="Temperature" />
       <use-data name="Heat-Flux" />
     </mesh>
 
-    <mesh name="Solid-Mesh-nodes">
-      <use-data name="Temperature" />
-    </mesh>
-
     <participant name="Fluid">
-      <export:csv directory="preCICE-output" every-n-time-windows="50" />
       <use-mesh name="Fluid-Mesh" provide="yes" />
       <use-mesh name="Solid-Mesh" from="Solid" />
       <read-data name="Heat-Flux" mesh="Fluid-Mesh" />
@@ -40,15 +36,13 @@
     <participant name="Solid">
       <use-mesh name="Fluid-Mesh" from="Fluid" />
       <use-mesh name="Solid-Mesh" provide="yes" />
-      <use-mesh name="Solid-Mesh-nodes" provide="yes" />
       <mapping:nearest-neighbor
         direction="read"
         from="Fluid-Mesh"
-        to="Solid-Mesh-nodes"
+        to="Solid-Mesh"
         constraint="consistent" />
-      <read-data name="Temperature" mesh="Solid-Mesh-nodes" />
+      <read-data name="Temperature" mesh="Solid-Mesh" />
       <write-data name="Heat-Flux" mesh="Solid-Mesh" />
-    <watch-point mesh="Solid-Mesh" name="MyWatchPoint" coordinate="0.5; 0.0"/>
     </participant>
 
     <m2n:sockets from="Fluid" to="Solid" network="ib0" exchange-directory=".." />

@@ -59,7 +59,7 @@ def main():
     cons0 = cons  # to not lose the Dirichlet BC at the bottom
     lhs0 = np.zeros(res.shape)  # solution from previous timestep
     timestep = 0
-    dt = 0.01
+    dt = 0.001
 
     # set u = uwall as initial condition and visualize
     sqr = domain.integral('(u - uwall)^2' @ ns, degree=2)
