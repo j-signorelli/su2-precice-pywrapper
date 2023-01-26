@@ -11,7 +11,6 @@ def loadParallelCSVSeries(name):
 
 def loadSerialCSVSeries(name):
   l = [(re.search(".dt(\d+).", s).group(1), s) for s in glob.glob(f"{name}.dt*.csv")]
-  print(l)
   return pandas.concat([pandas.read_csv(file, sep=";").assign(dt=dt) for dt, file in l], ignore_index=True)
 
 def main():
