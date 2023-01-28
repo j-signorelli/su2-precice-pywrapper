@@ -220,7 +220,9 @@ vector<passivedouble> CDriver::GetInitialMeshCoord(unsigned short iMarker, unsig
 
   auto iPoint = geometry_container[ZONE_0][INST_0][MESH_0]->vertex[iMarker][iVertex]->GetNode();
   for (auto iDim = 0 ; iDim < nDim ; iDim++){
-   coord[iDim] = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetCoord(iPoint,iDim); //solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->GetMesh_Coord(iPoint,iDim);
+    // preCICE
+   coord[iDim] = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetCoord(iPoint,iDim);
+                  //solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->GetMesh_Coord(iPoint,iDim);
     // CSolver object only instantiates coordinates if DEFORM_MESH= YES. This above works regardless, which is handy for CHT
   }
 
@@ -279,7 +281,7 @@ unsigned long CDriver::GetTime_Iter() const{
 passivedouble CDriver::GetUnsteady_TimeStep() const {
 
   return SU2_TYPE::GetValue(config_container[ZONE_0]->GetDelta_UnstTime());
-  // Changed to GetDelta_UnstTime(), as this is not the initial time step but the ACTUAL time step that is used
+  // preCICE: Changed to GetDelta_UnstTime(), as this is not the initial time step but the ACTUAL time step that is used
 }
 
 string CDriver::GetSurfaceFileName() const {
@@ -291,6 +293,16 @@ string CDriver::GetSurfaceFileName() const {
 //////////////////////////////////////////////////////////////////////////////////
 void CDriver::SetUnsteady_TimeStep(passivedouble val_delta_unsttime) {
     config_container[ZONE_0]->SetDelta_UnstTimeND(val_delta_unsttime / config_container[ZONE_0]->GetTime_Ref());
+}
+
+// preCICE:
+void CDriver::ReloadOldState() {
+    f
+}
+
+// preCICE:
+void CDriver::SaveOldState() {
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////

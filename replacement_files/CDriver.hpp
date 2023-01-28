@@ -100,6 +100,18 @@ protected:
   CInterface ***interface_container;            /*!< \brief Definition of the interface of information and physics. */
   bool dry_run;                                 /*!< \brief Flag if SU2_CFD was started as dry-run via "SU2_CFD -d <config>.cfg" */
 
+  // preCICE:
+  MatrixType preCICE_Solution;                  /*!< \brief . */
+  MatrixType preCICE_Solution_time_n;           /*!< \brief . */
+  MatrixType preCICE_Solution_time_n1;          /*!< \brief . */
+  su2activematrix preCICE_Coord;                /*!< \brief vector with the coordinates of the node - for preCICE implicit coupling. */
+  su2activematrix preCICE_Coord_n;              /*!< \brief Coordinates at time n for use with dynamic meshes - for preCICE implicit coupling. */
+  su2activematrix preCICE_Coord_n1;             /*!< \brief Coordinates at time n-1 for use with dynamic meshes - for preCICE implicit coupling. */
+  su2activematrix preCICE_Coord_p1;             /*!< \brief Coordinates at time n+1 for use with dynamic meshes - for preCICE implicit coupling. */
+  su2activematrix preCICE_GridVel;              /*!< \brief Velocity of the grid for dynamic mesh cases - for preCICE implicit coupling. */
+  CVectorOfMatrix preCICE_GridVel_Grad;         /*!< \brief Gradient of the grid velocity for dynamic meshes - for preCICE implicit coupling. */
+
+
 public:
 
   /*!
@@ -475,10 +487,20 @@ public:
   passivedouble GetUnsteady_TimeStep() const;
 
   /*!
-   * \brief Set the unsteady time step.
-   * \return Unsteady time step.
+   * \brief Set the unsteady time step, for preCICE
+   * \param[in] val_delta_unsttime - dimensional timestep to set
    */
   void SetUnsteady_TimeStep(passivedouble val_delta_unsttime);
+
+  /*!
+   * \brief Reload saved old state, for preCICE implicit coupling
+   */
+  void ReloadOldState();
+
+  /*!
+   * \brief Save old state, for preCICE implicit coupling
+  */
+  void SaveOldState();
 
   /*!
    * \brief Get the name of the output file for the surface.
