@@ -297,11 +297,66 @@ void CDriver::SetUnsteady_TimeStep(passivedouble val_delta_unsttime) {
 
 // preCICE:
 void CDriver::ReloadOldState() {
-    f
+
+
 }
 
 // preCICE:
 void CDriver::SaveOldState() {
+
+  // Get the number of solution variables, points, and dimension
+  unsigned short nVar = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetnVar();
+  unsigned long nPoint = geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint();
+  unsigned short nDim = geometry_container[ZONE_0][INST_0][MESH_0]->GetnDim();
+
+  // Get if this is dynamic grid (for unsteady FSI problems)
+  bool dynamic_grid = config_container[ZONE_0]->GetDynamic_Grid()
+
+  // Instantiate all required member variables if they aren't already
+  // Follows procedure found in CVariable.cpp
+  if (preCICE_Solution.empty()) preCICE_Solution.resize(nPoint, nVar) = su2double(0.0);
+
+  // Note that in CVariable, Solution_time_n is only instantiated for time domain simulations
+  //                         Solution_time_n is only instantiated for time marching != steady
+  // This adapter is setup to only work for unsteady runs, so no check is included here
+  if (preCICE_Solution_time_n.empty()) preCICE_Solution_time_n.resize(nPoint,nVar) = su2double(0.0);
+  if (preCICE_Solution_time_n1.empty()) preCICE_Solution_time_n1.resize(nPoint,nVar) = su2double(0.0);
+
+    // If this is a dynamic grid (FSI) run, instantiate the coordinates and grid velocities
+  if (dynamic_grid) {
+    // Follows procedure in CPoint.cpp
+    if (preCICE_Coord.empty()) preCICE_Coord.resize(nPoint, nDim) = su2double(0.0);
+    // Only if GridMovement used, not for new solver: if (preCICE_Coord_n.empty()) preCICE_Coord_n.resize(npoint,nDim) = su2double(0.0);
+    //NEVER USED: if (preCICE_Coord_p1.empty()) preCICE_Coord_p1.resize(npoint,nDim) = su2double(0.0);
+    // Only if GridMovement used, not for new solver: if (preCICE_Coord_n1.empty()) preCICE_Coord_n1.resize(npoint,nDim) = su2double(0.0);
+    if (preCICE_GridVel.empty()) preCICE_GridVel.resize(nPoint,nDim) = su2double(0.0);
+    
+    // Grid Velocity gradients only important for continuous adjoint - not implemented
+    //if (config_container[ZONE_0]->GetContinuousAdjoint() && preCICE_GridVel_Grad.empty()) preCICE_GridVel_Grad.resize(nPoint,nDim, nDim, 0.0);
+  }
+
+
+  // Loop through everything and save all necessary variables to reload state
+  for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
+    for (unsigned short iVar = 0; iVar < nVar; iVar++) {
+      preCICE_Solution(iPoint, iVar) = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->GetSolution(iPoint, iVar);
+      preCICE_Solution_time_n(iPoint, iVar) = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->GetSolution_time_n(iPoint, iVar);
+      preCICE_Solution_time_n1(iPoint, iVar) = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->GetSolution_time_n1(iPoint, iVar);
+
+    }
+
+    if (dynamic_grid) {
+      for (unsigned short iDim = 0; iDim < nDim; iDim++) {
+        preCICE_Coord(iPoint,iDim) = 
+        preCICE_Coord_n(iPoint,iDim) = 
+        preCICE_Coord_p1(iPoint,iDim) = 
+        preCICE_Coord_n1(iPoint,iDim) = 
+        // Continuous adjoint (GridVel_Grad setting) not yet implemented
+
+    }
+  }
+  */
+
 
 }
 
