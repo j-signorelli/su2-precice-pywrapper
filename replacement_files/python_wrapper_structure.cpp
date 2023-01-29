@@ -289,15 +289,100 @@ string CDriver::GetSurfaceFileName() const {
   return config_container[ZONE_0]->GetSurfCoeff_FileName();
 }
 //////////////////////////////////////////////////////////////////////////////////
-/* Functions to set global parameters in SU2 (time steps, delta t, ecc...) */
+/* Functions specifically created for use with preCICE */
 //////////////////////////////////////////////////////////////////////////////////
+
+// preCICE:
 void CDriver::SetUnsteady_TimeStep(passivedouble val_delta_unsttime) {
     config_container[ZONE_0]->SetDelta_UnstTimeND(val_delta_unsttime / config_container[ZONE_0]->GetTime_Ref());
 }
 
-// preCICE:
+// preCICE: method implemented for implicit coupling was to essentially treat states as reading + writing restart files
+// The code that completes this was copied + pasted, w/ minor edits made here. There is no non-invasive way to write preCICE saved state restart files.
 void CDriver::ReloadOldState() {
 
+  // Get the number of solution variables, points, and dimension
+  const unsigned short nVar = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetnVar();
+  const unsigned long nPoint = geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint();
+  const unsigned short nDim = geometry_container[ZONE_0][INST_0][MESH_0]->GetnDim();
+  
+  // Get if RANS
+  const bool rans = config_container[ZONE_0]->GetKind_Turb_Model() == TURB_MODEL::NONE
+
+  // Get if dual time being used
+  const bool dual_time = ((config_container[ZONE_0]->GetTime_Marching() == TIME_MARCHING::DT_STEPPING_1ST) || 
+                          (config_container[ZONE_0]->GetTime_Marching() == TIME_MARCHING::DT_STEPPING_2ND));
+
+  // Get if this is dynamic grid (for unsteady FSI problems)
+  bool dynamic_grid = config_container[ZONE_0]->GetDynamic_Grid()
+
+
+  //Set everything here as is done in CFVMFlowSolverBase::LoadRestart_impl
+
+
+  //Set everything here as is done in CTurbSolver::LoadRestart
+
+
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  //As done in CFVMFlowSolverBase::LoadRestart_impl
+
+  /*--- Update the geometry for flows on deforming meshes. ---*/
+  if (dynamic_grid) {
+    CGeometry::UpdateGeometry(geometry_container[ZONE_0][INST_0], config_container[ZONE_0]);
+
+    for (auto iMesh = 0u; iMesh <= config_container[ZONE_0]->GetnMGLevels(); iMesh++) {
+
+      /*--- Compute the grid velocities on the coarser levels. ---*/
+      if (iMesh) geometry_container[ZONE_0][INST_0][iMesh]->SetRestricted_GridVelocity(geometry_container[ZONE_0][INST_0][iMesh - 1]);
+      else {
+        geometry_container[ZONE_0][INST_0][MESH_0]->InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], GRID_VELOCITY);
+        geometry_container[ZONE_0][INST_0][MESH_0]->CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], GRID_VELOCITY);
+      }
+    }
+  }
+
+  /*--- Communicate the loaded solution on the fine grid before we transfer
+   it down to the coarse levels. We also call the preprocessing routine
+   on the fine level in order to have all necessary quantities updated,
+   especially if this is a turbulent simulation (eddy viscosity). ---*/
+
+  solver_container[MESH_0][FLOW_SOL]->InitiateComms(geometry[MESH_0], config, SOLUTION);
+  solver_container[MESH_0][FLOW_SOL]->CompleteComms(geometry[MESH_0], config, SOLUTION);
+
+
+  /*--- For turbulent/species simulations the flow preprocessing is done by the turbulence/species solver
+   *    after it loads its variables (they are needed to compute flow primitives). In case turbulence and species, the
+   *    species solver does all the Pre-/Postprocessing. ---*/
+  if (!rans &&
+      config_container[ZONE_0]->GetKind_Species_Model() == SPECIES_MODEL::NONE) {
+    solver_container[MESH_0][FLOW_SOL]->Preprocessing(geometry_container[ZONE_0][INST_0][MESH_0], solver_container[MESH_0], config_container[ZONE_0], MESH_0, NO_RK_ITER, RUNTIME_FLOW_SYS, false);
+  }
+
+    /*--- Interpolate the solution down to the coarse multigrid levels ---*/
+
+  for (auto iMesh = 1u; iMesh <= config->GetnMGLevels(); iMesh++) {
+    CSolver::MultigridRestriction(*geometry_container[ZONE_0][INST_0][iMesh - 1], solver_container[ZONE_0][INST_0][iMesh - 1][FLOW_SOL]->GetNodes()->GetSolution(),
+                         *geometry_container[ZONE_0][INST_0][iMesh], solver_container[ZONE_0][INST_0][iMesh][FLOW_SOL]->GetNodes()->GetSolution());
+    solver_container[ZONE_0][INST_0][iMesh][FLOW_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][iMesh], config, SOLUTION);
+    solver_container[ZONE_0][INST_0][iMesh][FLOW_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][iMesh], config, SOLUTION);
+
+    if (config_container[ZONE_0]->GetKind_Turb_Model() == TURB_MODEL::NONE &&
+        config_container[ZONE_0]->GetKind_Species_Model() == SPECIES_MODEL::NONE) {
+      solver_container[ZONE_0][INST_0][iMesh][FLOW_SOL]->Preprocessing(geometry_container[ZONE_0][INST_0][iMesh], solver[iMesh], config, iMesh, NO_RK_ITER, RUNTIME_FLOW_SYS, false);
+    }
+  }
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  // As done in CTurbSolver::LoadRestart
+  if (rans) {
+
+  }
+
+  // TODO: implement reloading of turbulence variables
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
+  // As done in CFVMFlowSolverBase::PushSolutionBackInTime (showing variables/settings required to be set)
+  // For dual-time:
 
 }
 
@@ -309,6 +394,10 @@ void CDriver::SaveOldState() {
   const unsigned long nPoint = geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint();
   const unsigned short nDim = geometry_container[ZONE_0][INST_0][MESH_0]->GetnDim();
   
+  // Get if RANS
+  const bool rans = config_container[ZONE_0]->GetKind_Turb_Model() == TURB_MODEL::NONE
+  const unsigned short TURB_nVar = solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetnVar();
+
   // Get if dual time being used
   const bool dual_time = ((config_container[ZONE_0]->GetTime_Marching() == TIME_MARCHING::DT_STEPPING_1ST) || 
                           (config_container[ZONE_0]->GetTime_Marching() == TIME_MARCHING::DT_STEPPING_2ND));
@@ -319,9 +408,17 @@ void CDriver::SaveOldState() {
   // Instantiate all required member variables if they aren't already
   if (preCICE_Solution.empty()) preCICE_Solution.resize(nPoint, nVar) = su2double(0.0);
 
+  if (rans && preCICE_TURB_Solution.empty()) preCICE_Solution.resize(nPoint, TURB_nVar) = su2double(0.0);
+
   if (dual_time) {
       if (preCICE_Solution_time_n.empty()) preCICE_Solution_time_n.resize(nPoint,nVar) = su2double(0.0);
       if (preCICE_Solution_time_n1.empty()) preCICE_Solution_time_n1.resize(nPoint,nVar) = su2double(0.0);
+      
+      if (rans) {
+        if (preCICE_TURB_Solution_time_n.empty()) preCICE_TURB_Solution_time_n.resize(nPoint,TURB_nVar) = su2double(0.0);
+        if (preCICE_TURB_Solution_time_n1.empty()) preCICE_TURB_Solution_time_n1.resize(nPoint,TURB_nVar) = su2double(0.0);
+      }
+
   }
 
   if (dynamic_grid) {
@@ -348,6 +445,17 @@ void CDriver::SaveOldState() {
     
     }
 
+    if (rans) {
+      for (unsigned short TURB_iVar = 0; TURB_iVar < TURB_nVar; TURB_iVar++) {
+        preCICE_TURB_Solution(iPoint, iVar) = solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->GetSolution(iPoint, TURB_iVar);
+
+        if (dual_time) {
+          preCICE_TURB_Solution_time_n(iPoint, TURB_iVar) = solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->GetSolution_time_n(iPoint, TURB_iVar);
+          preCICE_TURB_Solution_time_n1(iPoint, TURB_iVar) = solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->GetSolution_time_n1(iPoint, TURB_iVar);
+        }
+      }
+    }
+
     if (dynamic_grid) {
       for (unsigned short iDim = 0; iDim < nDim; iDim++) {
         preCICE_Coord(iPoint,iDim) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetCoord(iPoint,iDim);
@@ -363,7 +471,6 @@ void CDriver::SaveOldState() {
     }
   
   }
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////
