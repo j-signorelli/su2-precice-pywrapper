@@ -317,11 +317,50 @@ void CDriver::ReloadOldState() {
   bool dynamic_grid = config_container[ZONE_0]->GetDynamic_Grid()
 
 
-  //Set everything here as is done in CFVMFlowSolverBase::LoadRestart_impl
+  // Loop through everything and set all necessary variables to current state
+  for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
+    for (unsigned short iVar = 0; iVar < nVar; iVar++) {
+      solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->SetSolution(iPoint, iVar, preCICE_Solution(iPoint, iVar));
+
+      if (dual_time) {
+        solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->Set_Solution_time_n(iPoint, iVar, preCICE_Solution_time_n(iPoint, iVar));
+        solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->Set_Solution_time_n1(iPoint, iVar, preCICE_Solution_time_n1(iPoint, iVar));
+      }
+    }
+    if (rans) {
+      for (unsigned short TURB_iVar = 0; TURB_iVar < TURB_nVar; TURB_iVar++) {
+        solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->SetSolution(iPoint, TURB_iVar, preCICE_TURB_Solution(iPoint, iVar));
+
+        if (dual_time) {
+          solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->SetSolution_time_n(iPoint, TURB_iVar, preCICE_TURB_Solution_time_n(iPoint, TURB_iVar));
+          solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->GetSolution_time_n1(iPoint, TURB_iVar, preCICE_TURB_Solution_time_n1(iPoint, TURB_iVar));
+        }
+      }
+    }    
+    if (dynamic_grid) {
+      for (unsigned short iDim = 0; iDim < nDim; iDim++) {
+        geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetCoord(iPoint,iDim, preCICE_Coord(iPoint,iDim));
+        geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetGridVel(iPoint, iDim, preCICE_GridVel(iPoint, iDim));
+      }
+      
+      geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetVolume(iPoint, preCICE_Volume(iPoint));
+    }
+
+    if (dual_time && dynamic_grid) {
+      //Temporarily must set volume and then set appropriate n, n1, then reset Volume
+      // Order may seem awkward, but look at CPoint::SetVolume_____ functions to understand why
+      geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetVolume(iPoint, preCICE_Volume_nM1(iPoint));
+      geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetVolume_n();
+      geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetVolume_nM1();
+
+      geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetVolume(iPoint, preCICE_Volume_n(iPoint));
+      geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetVolume_n();
+
+      geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetVolume(iPoint, preCICE_Volume(iPoint));
+    }
 
 
-  //Set everything here as is done in CTurbSolver::LoadRestart
-
+  }
 
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -347,8 +386,8 @@ void CDriver::ReloadOldState() {
    on the fine level in order to have all necessary quantities updated,
    especially if this is a turbulent simulation (eddy viscosity). ---*/
 
-  solver_container[MESH_0][FLOW_SOL]->InitiateComms(geometry[MESH_0], config, SOLUTION);
-  solver_container[MESH_0][FLOW_SOL]->CompleteComms(geometry[MESH_0], config, SOLUTION);
+  solver_container[MESH_0][FLOW_SOL]->InitiateComms(geometry[MESH_0], config_container[ZONE_0], SOLUTION);
+  solver_container[MESH_0][FLOW_SOL]->CompleteComms(geometry[MESH_0], config_container[ZONE_0], SOLUTION);
 
 
   /*--- For turbulent/species simulations the flow preprocessing is done by the turbulence/species solver
@@ -364,25 +403,47 @@ void CDriver::ReloadOldState() {
   for (auto iMesh = 1u; iMesh <= config->GetnMGLevels(); iMesh++) {
     CSolver::MultigridRestriction(*geometry_container[ZONE_0][INST_0][iMesh - 1], solver_container[ZONE_0][INST_0][iMesh - 1][FLOW_SOL]->GetNodes()->GetSolution(),
                          *geometry_container[ZONE_0][INST_0][iMesh], solver_container[ZONE_0][INST_0][iMesh][FLOW_SOL]->GetNodes()->GetSolution());
-    solver_container[ZONE_0][INST_0][iMesh][FLOW_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][iMesh], config, SOLUTION);
-    solver_container[ZONE_0][INST_0][iMesh][FLOW_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][iMesh], config, SOLUTION);
+    solver_container[ZONE_0][INST_0][iMesh][FLOW_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][iMesh], config_container[ZONE_0], SOLUTION);
+    solver_container[ZONE_0][INST_0][iMesh][FLOW_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][iMesh], config_container[ZONE_0], SOLUTION);
 
-    if (config_container[ZONE_0]->GetKind_Turb_Model() == TURB_MODEL::NONE &&
+    if (!rans &&
         config_container[ZONE_0]->GetKind_Species_Model() == SPECIES_MODEL::NONE) {
-      solver_container[ZONE_0][INST_0][iMesh][FLOW_SOL]->Preprocessing(geometry_container[ZONE_0][INST_0][iMesh], solver[iMesh], config, iMesh, NO_RK_ITER, RUNTIME_FLOW_SYS, false);
+      solver_container[ZONE_0][INST_0][iMesh][FLOW_SOL]->Preprocessing(geometry_container[ZONE_0][INST_0][iMesh], solver[iMesh], config_container[ZONE_0], iMesh, NO_RK_ITER, RUNTIME_FLOW_SYS, false);
     }
   }
   //////////////////////////////////////////////////////////////////////////////////////////////
   // As done in CTurbSolver::LoadRestart
   if (rans) {
+      /*--- MPI solution and compute the eddy viscosity ---*/
+      solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION);
+      solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION);
 
+      /*--- For turbulent+species simulations the solver Pre-/Postprocessing is done by the species solver. ---*/
+      if (config->GetKind_Species_Model() == SPECIES_MODEL::NONE && config->GetKind_Trans_Model() == TURB_TRANS_MODEL::NONE) {
+        solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->Preprocessing(geometry_container[ZONE_0][INST_0][MESH_0], solver_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], MESH_0, NO_RK_ITER,
+                                                RUNTIME_FLOW_SYS, false);
+        solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->Postprocessing(geometry_container[ZONE_0][INST_0][MESH_0], solver_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], MESH_0);
+      } else {
+        cout << "ERROR: Adapter does not work with species solver!" << endl;
+        return;
+      }
+
+      /*--- Interpolate the solution down to the coarse multigrid levels ---*/
+
+      for (auto iMesh = 1u; iMesh <= config->GetnMGLevels(); iMesh++) {
+        CSolver::MultigridRestriction(*geometry_container[ZONE_0][INST_0][iMesh - 1], solver_container[ZONE_0][INST_0][iMesh - 1][TURB_SOL]->GetNodes()->GetSolution(),
+                            *geometry_container[ZONE_0][INST_0][iMesh], solver_container[ZONE_0][INST_0][iMesh][TURB_SOL]->GetNodes()->GetSolution());
+        solver_container[ZONE_0][INST_0][iMesh][TURB_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][iMesh], config_container[ZONE_0], SOLUTION);
+        solver_container[ZONE_0][INST_0][iMesh][TURB_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][iMesh], config_container[ZONE_0], SOLUTION);
+
+        if (config->GetKind_Species_Model() == SPECIES_MODEL::NONE) {
+          solver_container[ZONE_0][INST_0][iMesh][FLOW_SOL]->Preprocessing(geometry_container[ZONE_0][INST_0][iMesh], solver_container[ZONE_0][INST_0][iMesh], config_container[ZONE_0], iMesh, NO_RK_ITER, RUNTIME_FLOW_SYS,
+                                                false);
+          solver_container[ZONE_0][INST_0][iMesh][TURB_SOL]->Postprocessing(geometry_container[ZONE_0][INST_0][iMesh], solver_container[ZONE_0][INST_0][iMesh], config_container[ZONE_0], iMesh);
+        }
+      }
   }
-
-  // TODO: implement reloading of turbulence variables
-
   //////////////////////////////////////////////////////////////////////////////////////////////
-  // As done in CFVMFlowSolverBase::PushSolutionBackInTime (showing variables/settings required to be set)
-  // For dual-time:
 
 }
 
@@ -462,12 +523,12 @@ void CDriver::SaveOldState() {
         preCICE_GridVel(iPoint, iDim) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetGridVel(iPoint)[iDim];
       }
       
-      preCICE_Volume(iPoint) = *geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetVolume(iPoint)
+      preCICE_Volume(iPoint) = *geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetVolume(iPoint);
     }
 
     if (dual_time && dynamic_grid) {
-      preCICE_Volume_n(iPoint) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetVolume_n(iPoint)
-      preCICE_Volume_nM1(iPoint) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetVolume_nM1(iPoint)
+      preCICE_Volume_n(iPoint) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetVolume_n(iPoint);
+      preCICE_Volume_nM1(iPoint) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetVolume_nM1(iPoint);
     }
   
   }
