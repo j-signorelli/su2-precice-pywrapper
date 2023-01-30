@@ -307,9 +307,8 @@ void CDriver::ReloadOldState() {
   const unsigned short nDim = geometry_container[ZONE_0][INST_0][MESH_0]->GetnDim();
   
   // Get if RANS
-  const bool rans = config_container[ZONE_0]->GetKind_Turb_Model() == TURB_MODEL::NONE;
-  const unsigned short TURB_nVar = solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetnVar();
-
+  const bool rans = config_container[ZONE_0]->GetKind_Turb_Model() != TURB_MODEL::NONE;
+  const unsigned short TURB_nVar = (rans) ? solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetnVar() : 0;
   // Get if dual time being used
   const bool dual_time = ((config_container[ZONE_0]->GetTime_Marching() == TIME_MARCHING::DT_STEPPING_1ST) || 
                           (config_container[ZONE_0]->GetTime_Marching() == TIME_MARCHING::DT_STEPPING_2ND));
@@ -457,15 +456,15 @@ void CDriver::SaveOldState() {
   const unsigned short nDim = geometry_container[ZONE_0][INST_0][MESH_0]->GetnDim();
   
   // Get if RANS
-  const bool rans = config_container[ZONE_0]->GetKind_Turb_Model() == TURB_MODEL::NONE;
-  const unsigned short TURB_nVar = solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetnVar();
+  const bool rans = config_container[ZONE_0]->GetKind_Turb_Model() != TURB_MODEL::NONE;
+  const unsigned short TURB_nVar = (rans) ? solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetnVar() : 0;
 
   // Get if dual time being used
   const bool dual_time = ((config_container[ZONE_0]->GetTime_Marching() == TIME_MARCHING::DT_STEPPING_1ST) || 
                           (config_container[ZONE_0]->GetTime_Marching() == TIME_MARCHING::DT_STEPPING_2ND));
 
   // Get if this is dynamic grid (for unsteady FSI problems)
-  bool dynamic_grid = config_container[ZONE_0]->GetDynamic_Grid();
+  const bool dynamic_grid = config_container[ZONE_0]->GetDynamic_Grid();
 
   // Instantiate all required member variables if they aren't already
   if (preCICE_Solution.empty()) preCICE_Solution.resize(nPoint, nVar) = su2double(0.0);

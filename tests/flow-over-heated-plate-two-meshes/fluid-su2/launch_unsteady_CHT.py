@@ -36,7 +36,7 @@ import sys
 from optparse import OptionParser	# use a parser for configuration
 import pysu2			            # imports the SU2 wrapped module
 from math import *
-import precice #import precice
+import precice
 import numpy
 from time import sleep
 # -------------------------------------------------------------------
@@ -125,11 +125,10 @@ def main():
     iVertices_CHTMarker_PHYS = []# Datatypes must be primitive as input to SU2 wrapper code, not numpy.int8, numpy.int64, etc.. So a list is used
 
     # Obtain indices of all vertices that are being worked on on this rank
-    i = 0
-    for iVertex in range(nVertex_CHTMarker):
+
+    for i, iVertex in enumerate(range(nVertex_CHTMarker)):
       if not SU2Driver.IsAHaloNode(CHTMarkerID, iVertex):
         iVertices_CHTMarker_PHYS.append(int(iVertex))
-        i += 1
 
   # Get preCICE mesh ID
   try:
