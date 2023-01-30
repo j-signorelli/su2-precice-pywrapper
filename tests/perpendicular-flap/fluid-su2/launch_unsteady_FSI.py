@@ -61,23 +61,23 @@ def main():
 
     # Import mpi4py for parallel run
     if options.with_MPI == True:
-    from mpi4py import MPI
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        rank = comm.Get_rank()
     else:
-    comm = 0
-    rank = 0
+        comm = 0
+        rank = 0
 
     # Initialize the corresponding driver of SU2, this includes solver preprocessing
     try:
         SU2Driver = pysu2.CSinglezoneDriver(options.filename, options.nZone, comm);
     except TypeError as exception:
-    print('A TypeError occured in pysu2.CDriver : ',exception)
-    if options.with_MPI == True:
-        print('ERROR : You are trying to initialize MPI with a serial build of the wrapper. Please, remove the --parallel option that is incompatible with a serial build.')
-    else:
-        print('ERROR : You are trying to launch a computation without initializing MPI but the wrapper has been built in parallel. Please add the --parallel option in order to initialize MPI for the wrapper.')
-    return
+        print('A TypeError occured in pysu2.CDriver : ',exception)
+        if options.with_MPI == True:
+            print('ERROR : You are trying to initialize MPI with a serial build of the wrapper. Please, remove the --parallel option that is incompatible with a serial build.')
+        else:
+            print('ERROR : You are trying to launch a computation without initializing MPI but the wrapper has been built in parallel. Please add the --parallel option in order to initialize MPI for the wrapper.')
+        return
 
     # Configure preCICE:
     size = comm.Get_size()
