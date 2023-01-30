@@ -307,14 +307,15 @@ void CDriver::ReloadOldState() {
   const unsigned short nDim = geometry_container[ZONE_0][INST_0][MESH_0]->GetnDim();
   
   // Get if RANS
-  const bool rans = config_container[ZONE_0]->GetKind_Turb_Model() == TURB_MODEL::NONE
+  const bool rans = config_container[ZONE_0]->GetKind_Turb_Model() == TURB_MODEL::NONE;
+  const unsigned short TURB_nVar = solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetnVar();
 
   // Get if dual time being used
   const bool dual_time = ((config_container[ZONE_0]->GetTime_Marching() == TIME_MARCHING::DT_STEPPING_1ST) || 
                           (config_container[ZONE_0]->GetTime_Marching() == TIME_MARCHING::DT_STEPPING_2ND));
 
   // Get if this is dynamic grid (for unsteady FSI problems)
-  bool dynamic_grid = config_container[ZONE_0]->GetDynamic_Grid()
+  bool dynamic_grid = config_container[ZONE_0]->GetDynamic_Grid();
 
 
   // Loop through everything and set all necessary variables to current state
@@ -329,18 +330,18 @@ void CDriver::ReloadOldState() {
     }
     if (rans) {
       for (unsigned short TURB_iVar = 0; TURB_iVar < TURB_nVar; TURB_iVar++) {
-        solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->SetSolution(iPoint, TURB_iVar, preCICE_TURB_Solution(iPoint, iVar));
+        solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->SetSolution(iPoint, TURB_iVar, preCICE_TURB_Solution(iPoint, TURB_iVar));
 
         if (dual_time) {
-          solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->SetSolution_time_n(iPoint, TURB_iVar, preCICE_TURB_Solution_time_n(iPoint, TURB_iVar));
-          solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->GetSolution_time_n1(iPoint, TURB_iVar, preCICE_TURB_Solution_time_n1(iPoint, TURB_iVar));
+          solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->Set_Solution_time_n(iPoint, TURB_iVar, preCICE_TURB_Solution_time_n(iPoint, TURB_iVar));
+          solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->Set_Solution_time_n1(iPoint, TURB_iVar, preCICE_TURB_Solution_time_n1(iPoint, TURB_iVar));
         }
       }
     }    
     if (dynamic_grid) {
       for (unsigned short iDim = 0; iDim < nDim; iDim++) {
         geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetCoord(iPoint,iDim, preCICE_Coord(iPoint,iDim));
-        geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetGridVel(iPoint, iDim, preCICE_GridVel(iPoint, iDim));
+        geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetGridVel(iPoint, iDim, preCICE_GridVel(iPoint, iDim));
       }
       
       geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetVolume(iPoint, preCICE_Volume(iPoint));
@@ -386,8 +387,8 @@ void CDriver::ReloadOldState() {
    on the fine level in order to have all necessary quantities updated,
    especially if this is a turbulent simulation (eddy viscosity). ---*/
 
-  solver_container[MESH_0][FLOW_SOL]->InitiateComms(geometry[MESH_0], config_container[ZONE_0], SOLUTION);
-  solver_container[MESH_0][FLOW_SOL]->CompleteComms(geometry[MESH_0], config_container[ZONE_0], SOLUTION);
+  solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION);
+  solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION);
 
 
   /*--- For turbulent/species simulations the flow preprocessing is done by the turbulence/species solver
@@ -395,12 +396,12 @@ void CDriver::ReloadOldState() {
    *    species solver does all the Pre-/Postprocessing. ---*/
   if (!rans &&
       config_container[ZONE_0]->GetKind_Species_Model() == SPECIES_MODEL::NONE) {
-    solver_container[MESH_0][FLOW_SOL]->Preprocessing(geometry_container[ZONE_0][INST_0][MESH_0], solver_container[MESH_0], config_container[ZONE_0], MESH_0, NO_RK_ITER, RUNTIME_FLOW_SYS, false);
+    solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->Preprocessing(geometry_container[ZONE_0][INST_0][MESH_0], solver_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], MESH_0, NO_RK_ITER, RUNTIME_FLOW_SYS, false);
   }
 
     /*--- Interpolate the solution down to the coarse multigrid levels ---*/
 
-  for (auto iMesh = 1u; iMesh <= config->GetnMGLevels(); iMesh++) {
+  for (auto iMesh = 1u; iMesh <= config_container[ZONE_0]->GetnMGLevels(); iMesh++) {
     CSolver::MultigridRestriction(*geometry_container[ZONE_0][INST_0][iMesh - 1], solver_container[ZONE_0][INST_0][iMesh - 1][FLOW_SOL]->GetNodes()->GetSolution(),
                          *geometry_container[ZONE_0][INST_0][iMesh], solver_container[ZONE_0][INST_0][iMesh][FLOW_SOL]->GetNodes()->GetSolution());
     solver_container[ZONE_0][INST_0][iMesh][FLOW_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][iMesh], config_container[ZONE_0], SOLUTION);
@@ -408,7 +409,7 @@ void CDriver::ReloadOldState() {
 
     if (!rans &&
         config_container[ZONE_0]->GetKind_Species_Model() == SPECIES_MODEL::NONE) {
-      solver_container[ZONE_0][INST_0][iMesh][FLOW_SOL]->Preprocessing(geometry_container[ZONE_0][INST_0][iMesh], solver[iMesh], config_container[ZONE_0], iMesh, NO_RK_ITER, RUNTIME_FLOW_SYS, false);
+      solver_container[ZONE_0][INST_0][iMesh][FLOW_SOL]->Preprocessing(geometry_container[ZONE_0][INST_0][iMesh], solver_container[ZONE_0][INST_0][iMesh], config_container[ZONE_0], iMesh, NO_RK_ITER, RUNTIME_FLOW_SYS, false);
     }
   }
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -419,7 +420,7 @@ void CDriver::ReloadOldState() {
       solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION);
 
       /*--- For turbulent+species simulations the solver Pre-/Postprocessing is done by the species solver. ---*/
-      if (config->GetKind_Species_Model() == SPECIES_MODEL::NONE && config->GetKind_Trans_Model() == TURB_TRANS_MODEL::NONE) {
+      if (config_container[ZONE_0]->GetKind_Species_Model() == SPECIES_MODEL::NONE && config_container[ZONE_0]->GetKind_Trans_Model() == TURB_TRANS_MODEL::NONE) {
         solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->Preprocessing(geometry_container[ZONE_0][INST_0][MESH_0], solver_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], MESH_0, NO_RK_ITER,
                                                 RUNTIME_FLOW_SYS, false);
         solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->Postprocessing(geometry_container[ZONE_0][INST_0][MESH_0], solver_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], MESH_0);
@@ -430,13 +431,13 @@ void CDriver::ReloadOldState() {
 
       /*--- Interpolate the solution down to the coarse multigrid levels ---*/
 
-      for (auto iMesh = 1u; iMesh <= config->GetnMGLevels(); iMesh++) {
+      for (auto iMesh = 1u; iMesh <= config_container[ZONE_0]->GetnMGLevels(); iMesh++) {
         CSolver::MultigridRestriction(*geometry_container[ZONE_0][INST_0][iMesh - 1], solver_container[ZONE_0][INST_0][iMesh - 1][TURB_SOL]->GetNodes()->GetSolution(),
                             *geometry_container[ZONE_0][INST_0][iMesh], solver_container[ZONE_0][INST_0][iMesh][TURB_SOL]->GetNodes()->GetSolution());
         solver_container[ZONE_0][INST_0][iMesh][TURB_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][iMesh], config_container[ZONE_0], SOLUTION);
         solver_container[ZONE_0][INST_0][iMesh][TURB_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][iMesh], config_container[ZONE_0], SOLUTION);
 
-        if (config->GetKind_Species_Model() == SPECIES_MODEL::NONE) {
+        if (config_container[ZONE_0]->GetKind_Species_Model() == SPECIES_MODEL::NONE) {
           solver_container[ZONE_0][INST_0][iMesh][FLOW_SOL]->Preprocessing(geometry_container[ZONE_0][INST_0][iMesh], solver_container[ZONE_0][INST_0][iMesh], config_container[ZONE_0], iMesh, NO_RK_ITER, RUNTIME_FLOW_SYS,
                                                 false);
           solver_container[ZONE_0][INST_0][iMesh][TURB_SOL]->Postprocessing(geometry_container[ZONE_0][INST_0][iMesh], solver_container[ZONE_0][INST_0][iMesh], config_container[ZONE_0], iMesh);
@@ -456,7 +457,7 @@ void CDriver::SaveOldState() {
   const unsigned short nDim = geometry_container[ZONE_0][INST_0][MESH_0]->GetnDim();
   
   // Get if RANS
-  const bool rans = config_container[ZONE_0]->GetKind_Turb_Model() == TURB_MODEL::NONE
+  const bool rans = config_container[ZONE_0]->GetKind_Turb_Model() == TURB_MODEL::NONE;
   const unsigned short TURB_nVar = solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetnVar();
 
   // Get if dual time being used
@@ -464,7 +465,7 @@ void CDriver::SaveOldState() {
                           (config_container[ZONE_0]->GetTime_Marching() == TIME_MARCHING::DT_STEPPING_2ND));
 
   // Get if this is dynamic grid (for unsteady FSI problems)
-  bool dynamic_grid = config_container[ZONE_0]->GetDynamic_Grid()
+  bool dynamic_grid = config_container[ZONE_0]->GetDynamic_Grid();
 
   // Instantiate all required member variables if they aren't already
   if (preCICE_Solution.empty()) preCICE_Solution.resize(nPoint, nVar) = su2double(0.0);
@@ -508,7 +509,7 @@ void CDriver::SaveOldState() {
 
     if (rans) {
       for (unsigned short TURB_iVar = 0; TURB_iVar < TURB_nVar; TURB_iVar++) {
-        preCICE_TURB_Solution(iPoint, iVar) = solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->GetSolution(iPoint, TURB_iVar);
+        preCICE_TURB_Solution(iPoint, TURB_iVar) = solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->GetSolution(iPoint, TURB_iVar);
 
         if (dual_time) {
           preCICE_TURB_Solution_time_n(iPoint, TURB_iVar) = solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->GetSolution_time_n(iPoint, TURB_iVar);
@@ -523,7 +524,7 @@ void CDriver::SaveOldState() {
         preCICE_GridVel(iPoint, iDim) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetGridVel(iPoint)[iDim];
       }
       
-      preCICE_Volume(iPoint) = *geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetVolume(iPoint);
+      preCICE_Volume(iPoint) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetVolume(iPoint);
     }
 
     if (dual_time && dynamic_grid) {

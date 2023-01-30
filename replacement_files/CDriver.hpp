@@ -36,6 +36,9 @@
 
 #include "../../../Common/include/geometry/CGeometry.hpp"
 
+//preCICE: include required header file for MatrixType
+#include "../../../Common/include/containers/container_decorators.hpp"
+
 using namespace std;
 
 class COutputLegacy;
@@ -101,6 +104,8 @@ protected:
   bool dry_run;                                 /*!< \brief Flag if SU2_CFD was started as dry-run via "SU2_CFD -d <config>.cfg" */
 
   // preCICE:
+  using MatrixType = C2DContainer<unsigned long, su2double, StorageType::RowMajor,    64, DynamicSize, DynamicSize>;
+  
   // Required as from CDriver::Solver_Restart --> CFVMFlowSolverBase::LoadRestart_impl
   MatrixType preCICE_Solution;                  /*!< \brief Solution of the problem - for preCICE implicit coupling. */
   
