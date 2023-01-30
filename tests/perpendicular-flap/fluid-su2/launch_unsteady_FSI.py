@@ -110,13 +110,12 @@ def main():
     nVertex_MovingMarker_HALO = 0    #number of halo vertices
     nVertex_MovingMarker_PHYS = 0    #number of physical vertices
     iVertices_MovingMarker_PHYS = [] # indices of vertices this rank is working on
-
+    # Datatypes must be primitive as input to SU2 wrapper code, not numpy.int8, numpy.int64, etc.. So a list is used
     if MovingMarkerID != None:
         nVertex_MovingMarker = SU2Driver.GetNumberVertices(MovingMarkerID)
         nVertex_MovingMarker_HALO = SU2Driver.GetNumberHaloVertices(MovingMarkerID)
         nVertex_MovingMarker_PHYS = nVertex_MovingMarker - nVertex_MovingMarker_HALO
-        iVertices_CHTMarker_PHYS = []# Datatypes must be primitive as input to SU2 wrapper code, not numpy.int8, numpy.int64, etc.. So a list is used
-
+        
         # Obtain indices of all vertices that are being worked on on this rank
         for iVertex in range(nVertex_MovingMarker):
             if not SU2Driver.IsAHaloNode(MovingMarkerID, iVertex):
@@ -144,8 +143,8 @@ def main():
     write_data_id = interface.get_data_id(options.precice_write, mesh_id)
 
     # Instantiate arrays to hold displacements + forces info
-    displacements = numpy.zeros((nVertex_CHTMarker_PHYS,nDim))
-    forces = numpy.zeros((nVertex_CHTMarker_PHYS,nDim))
+    displacements = numpy.zeros((nVertex_MovingMarker_PHYS,options.nDim))
+    forces = numpy.zeros((nVertex_MovingMarker_PHYS,options.nDim))
 
 
     # Retrieve some control parameters from the driver
@@ -167,8 +166,8 @@ def main():
     # Set up initial data for preCICE
     if (interface.is_action_required(precice.action_write_initial_data())):
 
-        for i, iVertex in enumerate(iVertices_CHTMarker_PHYS):
-        forces[i] = SU2Driver.GetFlowLoad(MovingMarkerID, iVertex)
+        for i, iVertex in enumerate(iVertices_MovingMarker_PHYS):
+            forces[i] = SU2Driver.GetFlowLoad(MovingMarkerID, iVertex)
 
         interface.write_block_vector_data(write_data_id, vertex_ids, forces)
         interface.mark_action_fulfilled(precice.action_write_initial_data())
@@ -181,12 +180,12 @@ def main():
 
     # Time loop is defined in Python so that we have acces to SU2 functionalities at each time step
     if rank == 0:
-    print("\n------------------------------ Begin Solver -----------------------------\n")
+        print("\n------------------------------ Begin Solver -----------------------------\n")
     sys.stdout.flush()
     if options.with_MPI == True:
-    comm.Barrier()
+        comm.Barrier()
 
-    while (TimeIter < nTimeIter):
+    while (interface.is_coupling_ongoing()):#(TimeIter < nTimeIter):
         
         # Implicit coupling
         if (interface.is_action_required(precice.action_write_iteration_checkpoint())):
@@ -200,7 +199,11 @@ def main():
             
             # Set the updated displacements
             for i, iVertex in enumerate(iVertices_MovingMarker_PHYS):
-                SU2Driver.SetMeshDisplacement(CHTMarkerID, iVertex, displacements[i])
+                DisplX = displacements[i][0]
+                DisplY = displacements[i][1]
+                DisplZ = 0 if options.nDim == 2 else displacements[i][2]
+
+                SU2Driver.SetMeshDisplacement(MovingMarkerID, iVertex, DisplX, DisplY, DisplZ)
 
             # Communicate mesh displacements
             SU2Driver.CommunicateMeshDisplacement()
@@ -231,7 +234,7 @@ def main():
             for i, iVertex in enumerate(iVertices_MovingMarker_PHYS):
                 # Get forces at each vertex
                 forces[i] = SU2Driver.GetFlowLoads(MovingMarkerID, iVertex)
-        
+
             # Write data to preCICE
             interface.write_block_vector_data(write_data_id, vertex_ids, forces)
 
@@ -258,7 +261,7 @@ def main():
     interface.finalize()
 
     if SU2Driver != None:
-    del SU2Driver
+        del SU2Driver
 
 # -------------------------------------------------------------------
 #  Run Main Program
