@@ -190,6 +190,12 @@ def main():
 
   while (interface.is_coupling_ongoing()):#TimeIter < nTimeIter):
 
+    # Implicit coupling
+    if (interface.is_action_required(precice.action_write_iteration_checkpoint())):
+      # Save the state
+      SU2Driver.SaveOldState()
+      interface.mark_action_fulfilled(precice.action_write_iteration_checkpoint())
+
     if (interface.is_read_data_available()):
       # Retrieve data from preCICE
       heatFluxes = interface.read_block_scalar_data(read_data_id, vertex_ids) 
@@ -233,12 +239,18 @@ def main():
     # Advance preCICE
     precice_deltaT = interface.advance(deltaT)
 
-    SU2Driver.Output(TimeIter)
-    if (stopCalc == True):
-      break
-    # Update control parameters
-    TimeIter += 1
-    time += deltaT
+    # Implicit coupling:
+    if (interface.is_action_required(precice.action_read_iteration_checkpoint())):
+      # Reload old state
+      SU2Driver.ReloadOldState()
+      interface.mark_action_fulfilled(precice.action_read_iteration_checkpoint())
+    else: # Output and increment as usual
+      SU2Driver.Output(TimeIter)
+      if (stopCalc == True):
+        break
+      # Update control parameters
+      TimeIter += 1
+      time += deltaT
 
   interface.finalize()
   
