@@ -103,7 +103,7 @@ def main():
 
     # Check if the specified marker has a moving option and if it exists on this rank.
     if MovingMarker in MovingMarkerList and MovingMarker in allMarkerIDs.keys():
-    MovingMarkerID = allMarkerIDs[MovingMarker]
+        MovingMarkerID = allMarkerIDs[MovingMarker]
 
     # Number of vertices on the specified marker (per rank)
     nVertex_MovingMarker = 0         #total number of vertices (physical + halo)
@@ -118,7 +118,7 @@ def main():
         iVertices_CHTMarker_PHYS = []# Datatypes must be primitive as input to SU2 wrapper code, not numpy.int8, numpy.int64, etc.. So a list is used
 
         # Obtain indices of all vertices that are being worked on on this rank
-        for i, iVertex in enumerate(range(nVertex_MovingMarker)):
+        for iVertex in range(nVertex_MovingMarker):
             if not SU2Driver.IsAHaloNode(MovingMarkerID, iVertex):
                 iVertices_MovingMarker_PHYS.append(int(iVertex))
 
