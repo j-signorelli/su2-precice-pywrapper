@@ -167,7 +167,7 @@ def main():
     if (interface.is_action_required(precice.action_write_initial_data())):
 
         for i, iVertex in enumerate(iVertices_MovingMarker_PHYS):
-            forces[i] = SU2Driver.GetFlowLoad(MovingMarkerID, iVertex)
+            forces[i] = SU2Driver.GetFlowLoad(MovingMarkerID, iVertex)[:-1]
 
         interface.write_block_vector_data(write_data_id, vertex_ids, forces)
         interface.mark_action_fulfilled(precice.action_write_initial_data())
@@ -205,8 +205,8 @@ def main():
 
                 SU2Driver.SetMeshDisplacement(MovingMarkerID, iVertex, DisplX, DisplY, DisplZ)
 
-            # Communicate mesh displacements
-            SU2Driver.CommunicateMeshDisplacement()
+            # Communicate mesh displacements?
+            #SU2Driver.CommunicateMeshDisplacement()
         
         # Update timestep based on preCICE
         deltaT = SU2Driver.GetUnsteady_TimeStep()
@@ -233,7 +233,7 @@ def main():
             # Loop over the vertices
             for i, iVertex in enumerate(iVertices_MovingMarker_PHYS):
                 # Get forces at each vertex
-                forces[i] = SU2Driver.GetFlowLoads(MovingMarkerID, iVertex)
+                forces[i] = SU2Driver.GetFlowLoad(MovingMarkerID, iVertex)[:-1]
 
             # Write data to preCICE
             interface.write_block_vector_data(write_data_id, vertex_ids, forces)
