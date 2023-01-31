@@ -466,7 +466,7 @@ void CDriver::FinalizeMESH_SOL() {
   /*--- Init the linear system solution. ---*/
   for (unsigned long iPoint = 0; iPoint < nPoint; ++iPoint) {
     for (unsigned short iDim = 0; iDim < nDim; ++iDim) {
-      solver_container[ZONE_0][INST_0][MESH_SOL]->LinSysSol(iPoint, iDim) = solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->GetSolution(iPoint, iDim);
+      solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->LinSysSol(iPoint, iDim) = solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->GetSolution(iPoint, iDim);
     }
   }
 
@@ -474,11 +474,11 @@ void CDriver::FinalizeMESH_SOL() {
   
   /*--- Update the old geometry (coordinates n and n-1) ---*/
   //Only relevant functions from RestartOldGeometry pasted below
-  InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION_TIME_N);
-  CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION_TIME_N);
+  solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION_TIME_N);
+  solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION_TIME_N);
   
-  InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION_TIME_N);
-  CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION_TIME_N);
+  solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION_TIME_N);
+  solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION_TIME_N);
 
 
   /*--- Once Displacement_n and Displacement_n1 are filled we can compute the Grid Velocity ---*/
