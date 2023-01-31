@@ -208,7 +208,7 @@ def main():
             # Communicate mesh displacements?
             SU2Driver.CommunicateMeshDisplacement()
         
-        # As per the NASTRAN python wrapper setup:
+        # Include barrier after preCICE stuff
         if options.with_MPI == True:
             comm.Barrier()
 
@@ -259,6 +259,7 @@ def main():
             TimeIter += 1
             time += deltaT
 
+        # Include barrier after preCICE stuff
         if options.with_MPI == True:
             comm.Barrier()
 

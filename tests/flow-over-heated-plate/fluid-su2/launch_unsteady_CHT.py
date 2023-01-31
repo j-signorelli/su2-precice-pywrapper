@@ -205,6 +205,7 @@ def main():
       # Tell the SU2 drive to update the boundary conditions
       SU2Driver.BoundaryConditionsUpdate()
 
+    # Include barrier after preCICE stuff
     if options.with_MPI == True:
       comm.Barrier()
 
@@ -253,6 +254,7 @@ def main():
       TimeIter += 1
       time += deltaT
 
+    # Include barrier after preCICE stuff
     if options.with_MPI == True:
       comm.Barrier()
 

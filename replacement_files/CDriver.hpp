@@ -105,43 +105,22 @@ protected:
 
   // preCICE:
   using MatrixType = C2DContainer<unsigned long, su2double, StorageType::RowMajor,    64, DynamicSize, DynamicSize>;
-  
-  // Required as from CDriver::Solver_Restart --> CFVMFlowSolverBase::LoadRestart_impl
-  MatrixType preCICE_Solution;                  /*!< \brief Solution of the problem - for preCICE implicit coupling. */
-  
-  // Required for turbulent (RANS) sims
-  MatrixType preCICE_TURB_Solution;             /*!< \brief Solution of the problem - for preCICE implicit coupling. */
+  MatrixType preCICE_Solution;                  /*!< \brief FLOW Solution of the problem - for preCICE implicit coupling. */
+  MatrixType preCICE_Solution_time_n;           /*!< \brief FLOW Solution of the problem at time n for dual-time stepping technique - for preCICE implicit coupling. */
+  MatrixType preCICE_Solution_time_n1;          /*!< \brief FLOW Solution of the problem at time n-1 for dual-time stepping technique - for preCICE implicit coupling. */
+  MatrixType preCICE_TURB_Solution;             /*!< \brief TURB Solution of the problem - for preCICE implicit coupling. */
+  MatrixType preCICE_TURB_Solution_time_n;      /*!< \brief TURB Solution of the problem at time n for dual-time stepping technique - for preCICE implicit coupling. */
+  MatrixType preCICE_TURB_Solution_time_n1;     /*!< \brief TURB Solution of the problem at time n-1 for dual-time stepping technique - for preCICE implicit coupling. */
+  MatrixType preCICE_MESH_Solution;             /*!< \brief MESH Solution of the problem - for preCICE implicit coupling. */
+  MatrixType preCICE_MESH_Solution_time_n;      /*!< \brief MESH Solution of the problem at time n for dual-time stepping technique - for preCICE implicit coupling. */
+  MatrixType preCICE_MESH_Solution_time_n1;     /*!< \brief MESHSolution of the problem at time n-1 for dual-time stepping technique - for preCICE implicit coupling. */
 
-  // Required for dynamic grid
+  
   su2activematrix preCICE_Coord;                /*!< \brief vector with the coordinates of the node - for preCICE implicit coupling. */
   su2activematrix preCICE_GridVel;              /*!< \brief Velocity of the grid for dynamic mesh cases - for preCICE implicit coupling. */
-  
-  // Important for body forces, other things. Not sure if this is required but I cannot find a spot where it is calculated prior to iteration
-  // Only will change obviously if dynamic grid
   su2activevector preCICE_Volume;               /*!< \brief Volume or Area of the control volume in 3D and 2D - for preCICE implicit coupling. */
-  // TODO: check if matters^
-  
-
-  // Required for dual time-stepping:
-  MatrixType preCICE_Solution_time_n;           /*!< \brief Solution of the problem at time n for dual-time stepping technique - for preCICE implicit coupling. */
-  MatrixType preCICE_Solution_time_n1;          /*!< \brief Solution of the problem at time n-1 for dual-time stepping technique - for preCICE implicit coupling. */
-  // Required for turbulent (RANS) sims w/ dual time-stepping
-  MatrixType preCICE_TURB_Solution_time_n;             /*!< \brief Solution of the problem at time n for dual-time stepping technique - for preCICE implicit coupling. */
-  MatrixType preCICE_TURB_Solution_time_n1;             /*!< \brief Solution of the problem at time n for dual-time stepping technique - for preCICE implicit coupling. */
-
-  // Required for dynamic grid dual time-stepping
   su2activevector preCICE_Volume_n;             /*!< \brief Volume at time n - for preCICE implicit coupling. */
   su2activevector preCICE_Volume_nM1;           /*!< \brief Volume at time n-1 - for preCICE implicit coupling. */
-
-  // These below are only important if using old GRID_MOVEMENT or SURFACE_MOVEMENT
-  // Otherwise they are irrelevant since we have DEFORM_MESH= YES
-  //su2activematrix preCICE_Coord_n;              /*!< \brief Coordinates at time n for use with dynamic meshes - for preCICE implicit coupling. */
-  //su2activematrix preCICE_Coord_n1;             /*!< \brief Coordinates at time n-1 for use with dynamic meshes - for preCICE implicit coupling. */
-
-  // We are almost there!
-
-  //CVectorOfMatrix preCICE_GridVel_Grad;         /*!< \brief Gradient of the grid velocity for dynamic meshes - for preCICE implicit coupling, not yet implemented. */
-
 
 public:
 
@@ -382,6 +361,24 @@ protected:
    * \param[in] kind_recording - Type of recording (full list in ENUM_RECORDING, option_structure.hpp)
    */
   void Print_DirectResidual(RECORDING kind_recording);
+
+  /*!
+   * \brief Finalize reloading FLOW_SOL, for preCICE implicit coupling
+   * Precondition: SaveOldState called first
+   */
+   void FinalizeFLOW_SOL();
+
+   /*!
+   * \brief Finalize reloading TURB_SOL, for preCICE implicit coupling
+   * Precondition: SaveOldState called first, RANS sim
+   */
+   void FinalizeTURB_SOL();
+
+  /*!
+   * \brief Finalize reloading MESH_SOL, for preCICE implicit coupling
+   * Precondition: SaveOldState called first, DEFORM_MESH= YES
+   */
+   void FinalizeMESH_SOL();
 
 public:
 

@@ -224,7 +224,7 @@ vector<passivedouble> CDriver::GetInitialMeshCoord(unsigned short iMarker, unsig
    coord[iDim] = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetCoord(iPoint,iDim);
                   //solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->GetMesh_Coord(iPoint,iDim);
     // CSolver object only instantiates coordinates if DEFORM_MESH= YES. This above works regardless, which is handy for CHT
-  }
+  }// TODO: Verify that this is actually the same
 
   coord_passive[0] = SU2_TYPE::GetValue(coord[0]);
   coord_passive[1] = SU2_TYPE::GetValue(coord[1]);
@@ -297,8 +297,7 @@ void CDriver::SetUnsteady_TimeStep(passivedouble val_delta_unsttime) {
     config_container[ZONE_0]->SetDelta_UnstTimeND(val_delta_unsttime / config_container[ZONE_0]->GetTime_Ref());
 }
 
-// preCICE: method implemented for implicit coupling was to essentially treat states as reading + writing restart files
-// The code that completes this was copied + pasted, w/ minor edits made here. There is no non-invasive way to write preCICE saved state restart files.
+// preCICE:
 void CDriver::ReloadOldState() {
 
   // Get the number of solution variables, points, and dimension
@@ -309,44 +308,40 @@ void CDriver::ReloadOldState() {
   // Get if RANS
   const bool rans = config_container[ZONE_0]->GetKind_Turb_Model() != TURB_MODEL::NONE;
   const unsigned short TURB_nVar = (rans) ? solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetnVar() : 0;
-  // Get if dual time being used
-  const bool dual_time = ((config_container[ZONE_0]->GetTime_Marching() == TIME_MARCHING::DT_STEPPING_1ST) || 
-                          (config_container[ZONE_0]->GetTime_Marching() == TIME_MARCHING::DT_STEPPING_2ND));
 
   // Get if this is dynamic grid (for unsteady FSI problems)
-  bool dynamic_grid = config_container[ZONE_0]->GetDynamic_Grid();
-
+  const bool dynamic_grid = config_container[ZONE_0]->GetDynamic_Grid();
+  const unsigned short MESH_nVar = (dynamic_grid) ? solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetnVar() : 0;
+  
 
   // Loop through everything and set all necessary variables to current state
   for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
     for (unsigned short iVar = 0; iVar < nVar; iVar++) {
       solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->SetSolution(iPoint, iVar, preCICE_Solution(iPoint, iVar));
-
-      if (dual_time) {
         solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->Set_Solution_time_n(iPoint, iVar, preCICE_Solution_time_n(iPoint, iVar));
         solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->Set_Solution_time_n1(iPoint, iVar, preCICE_Solution_time_n1(iPoint, iVar));
-      }
     }
     if (rans) {
       for (unsigned short TURB_iVar = 0; TURB_iVar < TURB_nVar; TURB_iVar++) {
         solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->SetSolution(iPoint, TURB_iVar, preCICE_TURB_Solution(iPoint, TURB_iVar));
-
-        if (dual_time) {
-          solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->Set_Solution_time_n(iPoint, TURB_iVar, preCICE_TURB_Solution_time_n(iPoint, TURB_iVar));
-          solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->Set_Solution_time_n1(iPoint, TURB_iVar, preCICE_TURB_Solution_time_n1(iPoint, TURB_iVar));
-        }
+        solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->Set_Solution_time_n(iPoint, TURB_iVar, preCICE_TURB_Solution_time_n(iPoint, TURB_iVar));
+        solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->Set_Solution_time_n1(iPoint, TURB_iVar, preCICE_TURB_Solution_time_n1(iPoint, TURB_iVar));
       }
     }    
     if (dynamic_grid) {
+
+      for (unsigned short MESH_iVar = 0; MESH_iVar < MESH_nVar; MESH_iVar++) {
+        solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->SetSolution(iPoint, MESH_iVar, preCICE_MESH_Solution(iPoint, MESH_iVar));
+        solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->Set_Solution_time_n(iPoint, MESH_iVar, preCICE_MESH_Solution_time_n(iPoint, MESH_iVar));
+        solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->Set_Solution_time_n1(iPoint, MESH_iVar, preCICE_MESH_Solution_time_n1(iPoint, MESH_iVar));
+      }
+
       for (unsigned short iDim = 0; iDim < nDim; iDim++) {
         geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetCoord(iPoint,iDim, preCICE_Coord(iPoint,iDim));
         geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetGridVel(iPoint, iDim, preCICE_GridVel(iPoint, iDim));
       }
       
-      geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetVolume(iPoint, preCICE_Volume(iPoint));
-    }
-
-    if (dual_time && dynamic_grid) {
+      
       //Temporarily must set volume and then set appropriate n, n1, then reset Volume
       // Order may seem awkward, but look at CPoint::SetVolume_____ functions to understand why
       geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetVolume(iPoint, preCICE_Volume_nM1(iPoint));
@@ -362,9 +357,20 @@ void CDriver::ReloadOldState() {
 
   }
 
+  FinalizeFLOW_SOL();
+  if (rans) FinalizeTURB_SOL();
+  if (dynamic_grid) FinalizeMESH_SOL();
+}
 
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  //As done in CFVMFlowSolverBase::LoadRestart_impl
+//preCICE: Finalize FLOW reloads
+void CDriver::FinalizeFLOW_SOL() {
+
+  // Get if RANS
+  const bool rans = config_container[ZONE_0]->GetKind_Turb_Model() != TURB_MODEL::NONE;
+
+  // Get if this is dynamic grid (for unsteady FSI problems)
+  bool dynamic_grid = config_container[ZONE_0]->GetDynamic_Grid();
+
 
   /*--- Update the geometry for flows on deforming meshes. ---*/
   if (dynamic_grid) {
@@ -411,44 +417,207 @@ void CDriver::ReloadOldState() {
       solver_container[ZONE_0][INST_0][iMesh][FLOW_SOL]->Preprocessing(geometry_container[ZONE_0][INST_0][iMesh], solver_container[ZONE_0][INST_0][iMesh], config_container[ZONE_0], iMesh, NO_RK_ITER, RUNTIME_FLOW_SYS, false);
     }
   }
-  //////////////////////////////////////////////////////////////////////////////////////////////
-  // As done in CTurbSolver::LoadRestart
-  if (rans) {
-      /*--- MPI solution and compute the eddy viscosity ---*/
-      solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION);
-      solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION);
+}
 
-      /*--- For turbulent+species simulations the solver Pre-/Postprocessing is done by the species solver. ---*/
-      if (config_container[ZONE_0]->GetKind_Species_Model() == SPECIES_MODEL::NONE && config_container[ZONE_0]->GetKind_Trans_Model() == TURB_TRANS_MODEL::NONE) {
-        solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->Preprocessing(geometry_container[ZONE_0][INST_0][MESH_0], solver_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], MESH_0, NO_RK_ITER,
-                                                RUNTIME_FLOW_SYS, false);
-        solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->Postprocessing(geometry_container[ZONE_0][INST_0][MESH_0], solver_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], MESH_0);
-      } else {
-        cout << "ERROR: Adapter does not work with species solver!" << endl;
-        return;
-      }
+// preCICE: Finalize TURB reloads
+void CDriver::FinalizeTURB_SOL() {
+  /*--- MPI solution and compute the eddy viscosity ---*/
+  solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION);
+  solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION);
 
-      /*--- Interpolate the solution down to the coarse multigrid levels ---*/
-
-      for (auto iMesh = 1u; iMesh <= config_container[ZONE_0]->GetnMGLevels(); iMesh++) {
-        CSolver::MultigridRestriction(*geometry_container[ZONE_0][INST_0][iMesh - 1], solver_container[ZONE_0][INST_0][iMesh - 1][TURB_SOL]->GetNodes()->GetSolution(),
-                            *geometry_container[ZONE_0][INST_0][iMesh], solver_container[ZONE_0][INST_0][iMesh][TURB_SOL]->GetNodes()->GetSolution());
-        solver_container[ZONE_0][INST_0][iMesh][TURB_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][iMesh], config_container[ZONE_0], SOLUTION);
-        solver_container[ZONE_0][INST_0][iMesh][TURB_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][iMesh], config_container[ZONE_0], SOLUTION);
-
-        if (config_container[ZONE_0]->GetKind_Species_Model() == SPECIES_MODEL::NONE) {
-          solver_container[ZONE_0][INST_0][iMesh][FLOW_SOL]->Preprocessing(geometry_container[ZONE_0][INST_0][iMesh], solver_container[ZONE_0][INST_0][iMesh], config_container[ZONE_0], iMesh, NO_RK_ITER, RUNTIME_FLOW_SYS,
-                                                false);
-          solver_container[ZONE_0][INST_0][iMesh][TURB_SOL]->Postprocessing(geometry_container[ZONE_0][INST_0][iMesh], solver_container[ZONE_0][INST_0][iMesh], config_container[ZONE_0], iMesh);
-        }
-      }
+  /*--- For turbulent+species simulations the solver Pre-/Postprocessing is done by the species/transition solver. ---*/
+  if (config_container[ZONE_0]->GetKind_Species_Model() == SPECIES_MODEL::NONE && config_container[ZONE_0]->GetKind_Trans_Model() == TURB_TRANS_MODEL::NONE) {
+    solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->Preprocessing(geometry_container[ZONE_0][INST_0][MESH_0], solver_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], MESH_0, NO_RK_ITER,
+                                            RUNTIME_FLOW_SYS, false);
+    solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->Postprocessing(geometry_container[ZONE_0][INST_0][MESH_0], solver_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], MESH_0);
+  } else {
+    SU2_MPI::Error("Invalid configuration for using implicit coupling! Species and transition models not implemented.", CURRENT_FUNCTION);
+    return;
   }
-  //////////////////////////////////////////////////////////////////////////////////////////////
+
+  /*--- Interpolate the solution down to the coarse multigrid levels ---*/
+
+  for (auto iMesh = 1u; iMesh <= config_container[ZONE_0]->GetnMGLevels(); iMesh++) {
+    CSolver::MultigridRestriction(*geometry_container[ZONE_0][INST_0][iMesh - 1], solver_container[ZONE_0][INST_0][iMesh - 1][TURB_SOL]->GetNodes()->GetSolution(),
+                        *geometry_container[ZONE_0][INST_0][iMesh], solver_container[ZONE_0][INST_0][iMesh][TURB_SOL]->GetNodes()->GetSolution());
+    solver_container[ZONE_0][INST_0][iMesh][TURB_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][iMesh], config_container[ZONE_0], SOLUTION);
+    solver_container[ZONE_0][INST_0][iMesh][TURB_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][iMesh], config_container[ZONE_0], SOLUTION);
+
+    if (config_container[ZONE_0]->GetKind_Species_Model() == SPECIES_MODEL::NONE) {
+      solver_container[ZONE_0][INST_0][iMesh][FLOW_SOL]->Preprocessing(geometry_container[ZONE_0][INST_0][iMesh], solver_container[ZONE_0][INST_0][iMesh], config_container[ZONE_0], iMesh, NO_RK_ITER, RUNTIME_FLOW_SYS,
+                                            false);
+      solver_container[ZONE_0][INST_0][iMesh][TURB_SOL]->Postprocessing(geometry_container[ZONE_0][INST_0][iMesh], solver_container[ZONE_0][INST_0][iMesh], config_container[ZONE_0], iMesh);
+    }
+  }
+} 
+
+// preCICE: Finalize MESH reloads
+void CDriver::FinalizeMESH_SOL() {
+
+  // Get the number of solution points and dimension
+  const unsigned long nPoint = geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint();
+  const unsigned short nDim = geometry_container[ZONE_0][INST_0][MESH_0]->GetnDim();
+  
+
+  /*--- Communicate the loaded displacements. ---*/
+  solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION);
+  solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION);
+
+  /*--- Init the linear system solution. ---*/
+  for (unsigned long iPoint = 0; iPoint < nPoint; ++iPoint) {
+    for (unsigned short iDim = 0; iDim < nDim; ++iDim) {
+      solver_container[ZONE_0][INST_0][MESH_SOL]->LinSysSol(iPoint, iDim) = solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->GetSolution(iPoint, iDim);
+    }
+  }
+
+  /*--- For time-domain problems, we need to compute the grid velocities. ---*/
+  
+  /*--- Update the old geometry (coordinates n and n-1) ---*/
+  //Only relevant functions from RestartOldGeometry pasted below
+  InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION_TIME_N);
+  CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION_TIME_N);
+  
+  InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION_TIME_N);
+  CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION_TIME_N);
+
+
+  /*--- Once Displacement_n and Displacement_n1 are filled we can compute the Grid Velocity ---*/
+  /*--- Compute the velocity of each node. ---*/
+
+  const bool firstOrder = config_container[ZONE_0]->GetTime_Marching() == TIME_MARCHING::DT_STEPPING_1ST;
+  const bool secondOrder = config_container[ZONE_0]->GetTime_Marching() == TIME_MARCHING::DT_STEPPING_2ND;
+  const su2double invTimeStep = 1.0 / config_container[ZONE_0]->GetDelta_UnstTimeND();
+
+  SU2_OMP_FOR_STAT(omp_chunk_size)
+  for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
+
+    /*--- Coordinates of the current point at n+1, n, & n-1 time levels. ---*/
+
+    const su2double* Disp_nM1 = solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->GetSolution_time_n1(iPoint);
+    const su2double* Disp_n   = solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->GetSolution_time_n(iPoint);
+    const su2double* Disp_nP1 = solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->GetSolution(iPoint);
+
+    /*--- Compute mesh velocity for this point with 1st or 2nd-order approximation. ---*/
+
+    for (unsigned short iDim = 0; iDim < nDim; iDim++) {
+
+      su2double GridVel = 0.0;
+      if (firstOrder)
+        GridVel = (Disp_nP1[iDim] - Disp_n[iDim]) * invTimeStep;
+      else if (secondOrder)
+        GridVel = (1.5*Disp_nP1[iDim] - 2.0*Disp_n[iDim] + 0.5*Disp_nM1[iDim]) * invTimeStep;
+
+      geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetGridVel(iPoint, iDim, GridVel);
+    }
+  }
+  END_SU2_OMP_FOR
+
+  for (auto iMGlevel = 1u; iMGlevel <= config_container[ZONE_0]->GetnMGLevels(); iMGlevel++)
+    geometry_container[ZONE_0][INST_0][iMGlevel]->SetRestricted_GridVelocity(geometry_container[ZONE_0][INST_0][iMGlevel-1]);
+
+
+
+  /*--- Store the boundary displacements at the Bound_Disp variable. ---*/
+  for (unsigned short iMarker = 0; iMarker < config_container[ZONE_0]->GetnMarker_All(); iMarker++) {
+
+    if ((config_container[ZONE_0]->GetMarker_All_Deform_Mesh(iMarker) == YES) ||
+        (config_container[ZONE_0]->GetMarker_All_Moving(iMarker) == YES)) {
+
+      for (unsigned long iVertex = 0; iVertex < geometry_container[ZONE_0][INST_0][MESH_0]->nVertex[iMarker]; iVertex++) {
+
+        /*--- Get node index. ---*/
+        auto iNode = geometry_container[ZONE_0][INST_0][MESH_0]->vertex[iMarker][iVertex]->GetNode();
+
+        /*--- Set boundary solution. ---*/
+        solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->SetBound_Disp(iNode, solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->GetSolution(iNode));
+      }
+    }
+  }
 
 }
 
 // preCICE:
 void CDriver::SaveOldState() {
+
+  // Get the number of solution variables, points, and dimension
+  const unsigned short nVar = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetnVar();
+  const unsigned long nPoint = geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint();
+  const unsigned short nDim = geometry_container[ZONE_0][INST_0][MESH_0]->GetnDim();
+  
+  // Get if RANS
+  const bool rans = config_container[ZONE_0]->GetKind_Turb_Model() != TURB_MODEL::NONE;
+  const unsigned short TURB_nVar = (rans) ? solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetnVar() : 0;
+
+  // Get if this is dynamic grid (for unsteady FSI problems)
+  const bool dynamic_grid = config_container[ZONE_0]->GetDynamic_Grid();
+  const unsigned short MESH_nVar = (dynamic_grid) ? solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetnVar() : 0;
+  
+  // Instantiate all required member variables if they aren't already
+  if (preCICE_Solution.empty()) preCICE_Solution.resize(nPoint, nVar) = su2double(0.0);
+  if (preCICE_Solution_time_n.empty()) preCICE_Solution_time_n.resize(nPoint,nVar) = su2double(0.0);
+  if (preCICE_Solution_time_n1.empty()) preCICE_Solution_time_n1.resize(nPoint,nVar) = su2double(0.0);
+
+  if (rans) {
+    if (preCICE_TURB_Solution.empty()) preCICE_TURB_Solution.resize(nPoint,TURB_nVar) = su2double(0.0);
+    if (preCICE_TURB_Solution_time_n.empty()) preCICE_TURB_Solution_time_n.resize(nPoint,TURB_nVar) = su2double(0.0);
+    if (preCICE_TURB_Solution_time_n1.empty()) preCICE_TURB_Solution_time_n1.resize(nPoint,TURB_nVar) = su2double(0.0);
+  }
+
+  if (dynamic_grid) {
+    if (preCICE_MESH_Solution.empty()) preCICE_MESH_Solution.resize(nPoint,MESH_nVar) = su2double(0.0);
+    if (preCICE_MESH_Solution_time_n.empty()) preCICE_MESH_Solution_time_n.resize(nPoint,MESH_nVar) = su2double(0.0);
+    if (preCICE_MESH_Solution_time_n1.empty()) preCICE_MESH_Solution_time_n1.resize(nPoint,MESH_nVar) = su2double(0.0);
+  
+
+    if (preCICE_Coord.empty()) preCICE_Coord.resize(nPoint, nDim) = su2double(0.0);
+    if (preCICE_GridVel.empty()) preCICE_GridVel.resize(nPoint,nDim) = su2double(0.0);
+    if (preCICE_Volume.empty()) preCICE_Volume.resize(nPoint) = su2double(0.0);
+    if (preCICE_Volume_n.empty()) preCICE_Volume_n.resize(nPoint) = su2double(0.0);
+    if (preCICE_Volume_nM1.empty()) preCICE_Volume_nM1.resize(nPoint) = su2double(0.0);
+  }
+
+
+  // Loop through everything and save all necessary variables to reload state
+  for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
+    for (unsigned short iVar = 0; iVar < nVar; iVar++) {
+      preCICE_Solution(iPoint, iVar) = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->GetSolution(iPoint, iVar);
+      preCICE_Solution_time_n(iPoint, iVar) = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->GetSolution_time_n(iPoint, iVar);
+      preCICE_Solution_time_n1(iPoint, iVar) = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->GetSolution_time_n1(iPoint, iVar);
+    }
+
+    if (rans) {
+      for (unsigned short TURB_iVar = 0; TURB_iVar < TURB_nVar; TURB_iVar++) {
+        preCICE_TURB_Solution(iPoint, TURB_iVar) = solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->GetSolution(iPoint, TURB_iVar);
+        preCICE_TURB_Solution_time_n(iPoint, TURB_iVar) = solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->GetSolution_time_n(iPoint, TURB_iVar);
+        preCICE_TURB_Solution_time_n1(iPoint, TURB_iVar) = solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->GetSolution_time_n1(iPoint, TURB_iVar);
+      }
+    }
+
+    if (dynamic_grid) {
+      for (unsigned short MESH_iVar = 0; MESH_iVar < MESH_nVar; MESH_iVar++) {
+        preCICE_MESH_Solution(iPoint, MESH_iVar) = solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->GetSolution(iPoint, MESH_iVar);
+        preCICE_MESH_Solution_time_n(iPoint, MESH_iVar) = solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->GetSolution_time_n(iPoint, MESH_iVar);
+        preCICE_MESH_Solution_time_n1(iPoint, MESH_iVar) = solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->GetSolution_time_n1(iPoint, MESH_iVar);
+      }
+
+
+      for (unsigned short iDim = 0; iDim < nDim; iDim++) {
+        preCICE_Coord(iPoint,iDim) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetCoord(iPoint,iDim);
+        preCICE_GridVel(iPoint, iDim) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetGridVel(iPoint)[iDim];
+      }
+      
+      preCICE_Volume(iPoint) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetVolume(iPoint);
+      preCICE_Volume_n(iPoint) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetVolume_n(iPoint);
+      preCICE_Volume_nM1(iPoint) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetVolume_nM1(iPoint);
+    }
+  
+  }
+}
+
+//preCICE: Debug
+void CDriver::PrintDebugInfo() {
+
+  cout << "config_container[ZONE_0]->GetGrid_Movement(): " << config_container[ZONE_0]->GetGrid_Movement() << endl;
 
   // Get the number of solution variables, points, and dimension
   const unsigned short nVar = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetnVar();
@@ -466,72 +635,58 @@ void CDriver::SaveOldState() {
   // Get if this is dynamic grid (for unsteady FSI problems)
   const bool dynamic_grid = config_container[ZONE_0]->GetDynamic_Grid();
 
-  // Instantiate all required member variables if they aren't already
-  if (preCICE_Solution.empty()) preCICE_Solution.resize(nPoint, nVar) = su2double(0.0);
+  cout << "----------------------------------------------------------------------------" << endl;
+  cout << "RANK " << rank << endl;
+  cout << "nVar: " << nVar << endl;
+  cout << "nPoint: " << nPoint << endl;
+  cout << "nDim: " << nDim << endl;
+  cout << "RANS? " << rans << endl;
+  cout << "TURB_nVar: " << TURB_nVar << endl;
+  cout << "Dual Time? " << dual_time << endl;
+  cout << "Dynamic Grid? " << dynamic_grid << endl;
 
-  if (rans && preCICE_TURB_Solution.empty()) preCICE_Solution.resize(nPoint, TURB_nVar) = su2double(0.0);
-
-  if (dual_time) {
-      if (preCICE_Solution_time_n.empty()) preCICE_Solution_time_n.resize(nPoint,nVar) = su2double(0.0);
-      if (preCICE_Solution_time_n1.empty()) preCICE_Solution_time_n1.resize(nPoint,nVar) = su2double(0.0);
-      
-      if (rans) {
-        if (preCICE_TURB_Solution_time_n.empty()) preCICE_TURB_Solution_time_n.resize(nPoint,TURB_nVar) = su2double(0.0);
-        if (preCICE_TURB_Solution_time_n1.empty()) preCICE_TURB_Solution_time_n1.resize(nPoint,TURB_nVar) = su2double(0.0);
-      }
-
-  }
-
-  if (dynamic_grid) {
-    if (preCICE_Volume.empty()) preCICE_Volume.resize(nPoint) = su2double(0.0);
-    if (preCICE_Coord.empty()) preCICE_Coord.resize(nPoint, nDim) = su2double(0.0);
-    if (preCICE_GridVel.empty()) preCICE_GridVel.resize(nPoint,nDim) = su2double(0.0);
-  }
-
-  if (dual_time && dynamic_grid) {
-    if (preCICE_Volume_n.empty()) preCICE_Volume_n.resize(nPoint) = su2double(0.0);
-    if (preCICE_Volume_nM1.empty()) preCICE_Volume_nM1.resize(nPoint) = su2double(0.0);
-  }
-
-
-  // Loop through everything and save all necessary variables to reload state
   for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
     for (unsigned short iVar = 0; iVar < nVar; iVar++) {
-      preCICE_Solution(iPoint, iVar) = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->GetSolution(iPoint, iVar);
-  
-      if (dual_time) {
-        preCICE_Solution_time_n(iPoint, iVar) = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->GetSolution_time_n(iPoint, iVar);
-        preCICE_Solution_time_n1(iPoint, iVar) = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->GetSolution_time_n1(iPoint, iVar);
-      }
-    
+      cout << "preCICE_Solution(" << iPoint << "," << iVar << "): " << preCICE_Solution(iPoint, iVar)
     }
-
-    if (rans) {
-      for (unsigned short TURB_iVar = 0; TURB_iVar < TURB_nVar; TURB_iVar++) {
-        preCICE_TURB_Solution(iPoint, TURB_iVar) = solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->GetSolution(iPoint, TURB_iVar);
-
-        if (dual_time) {
-          preCICE_TURB_Solution_time_n(iPoint, TURB_iVar) = solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->GetSolution_time_n(iPoint, TURB_iVar);
-          preCICE_TURB_Solution_time_n1(iPoint, TURB_iVar) = solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->GetSolution_time_n1(iPoint, TURB_iVar);
-        }
-      }
-    }
-
-    if (dynamic_grid) {
-      for (unsigned short iDim = 0; iDim < nDim; iDim++) {
-        preCICE_Coord(iPoint,iDim) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetCoord(iPoint,iDim);
-        preCICE_GridVel(iPoint, iDim) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetGridVel(iPoint)[iDim];
-      }
-      
-      preCICE_Volume(iPoint) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetVolume(iPoint);
-    }
-
-    if (dual_time && dynamic_grid) {
-      preCICE_Volume_n(iPoint) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetVolume_n(iPoint);
-      preCICE_Volume_nM1(iPoint) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetVolume_nM1(iPoint);
-    }
-  
   }
+  
+  if (dual_time) {
+    cout << "Dual time detected..." << endl;
+    for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
+      for (unsigned short iVar = 0; iVar < nVar; iVar++) {
+        cout << "preCICE_Solution_time_n(" << iPoint << "," << iVar << "): " << preCICE_Solution_time_n(iPoint, iVar)
+      }
+    }
+
+    for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
+      for (unsigned short iVar = 0; iVar < nVar; iVar++) {
+        cout << "preCICE_Solution_time_n1(" << iPoint << "," << iVar << "): " << preCICE_Solution_time_n1(iPoint, iVar)
+      }
+    }
+  }
+  if (rans) {
+    cout << "RANS-Simulation Detected..." << endl;
+    for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
+      for (unsigned short TURB_iVar = 0; TURB_iVar < TURB_nVar; iVar++) {
+        cout << "preCICE_TURB_Solution(" << iPoint << "," << TURBiVar << "): " << preCICE_TURB_Solution(iPoint, TURB_iVar)
+      }
+    }
+    for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
+      for (unsigned short TURB_iVar = 0; TURB_iVar < TURB_nVar; iVar++) {
+        cout << "preCICE_TURB_Solution_time_n(" << iPoint << "," << TURBiVar << "): " << preCICE_TURB_Solution_time_n(iPoint, TURB_iVar)
+      }
+    }
+    for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
+      for (unsigned short TURB_iVar = 0; TURB_iVar < TURB_nVar; iVar++) {
+        cout << "preCICE_TURB_Solution_time_n1(" << iPoint << "," << TURBiVar << "): " << preCICE_TURB_Solution_time_n1(iPoint, TURB_iVar)
+      }
+    }
+
+
+  }
+
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////
