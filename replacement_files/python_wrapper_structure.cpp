@@ -618,7 +618,7 @@ void CDriver::SaveOldState() {
 void CDriver::PrintDebugInfo() {
 
   cout << "config_container[ZONE_0]->GetGrid_Movement(): " << config_container[ZONE_0]->GetGrid_Movement() << endl;
-
+  /*
   // Get the number of solution variables, points, and dimension
   const unsigned short nVar = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetnVar();
   const unsigned long nPoint = geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint();
@@ -685,7 +685,7 @@ void CDriver::PrintDebugInfo() {
 
 
   }
-
+  */
 
 }
 
