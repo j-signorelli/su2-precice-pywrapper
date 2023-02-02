@@ -661,20 +661,19 @@ void CDriver::PrintDebugInfo() {
 
   for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
     for (unsigned short iVar = 0; iVar < nVar; iVar++) {
-      cout << "preCICE_Solution(" << iPoint << "," << iVar << "): " << preCICE_Solution(iPoint, iVar)
+      cout << "preCICE_Solution(" << iPoint << "," << iVar << "): " << preCICE_Solution(iPoint, iVar);
     }
   }
   
   cout << "Dual time detected..." << endl;
   for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
     for (unsigned short iVar = 0; iVar < nVar; iVar++) {
-      cout << "preCICE_Solution_time_n(" << iPoint << "," << iVar << "): " << preCICE_Solution_time_n(iPoint, iVar)
-    }
+      cout << "preCICE_Solution_time_n(" << iPoint << "," << iVar << "): " << preCICE_Solution_time_n(iPoint, iVar);
   }
 
   for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
     for (unsigned short iVar = 0; iVar < nVar; iVar++) {
-      cout << "preCICE_Solution_time_n1(" << iPoint << "," << iVar << "): " << preCICE_Solution_time_n1(iPoint, iVar)
+      cout << "preCICE_Solution_time_n1(" << iPoint << "," << iVar << "): " << preCICE_Solution_time_n1(iPoint, iVar);
     }
   }
 
