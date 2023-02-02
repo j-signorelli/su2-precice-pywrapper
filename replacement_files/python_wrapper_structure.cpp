@@ -323,12 +323,6 @@ void CDriver::ReloadOldState() {
           we will reloadl the vars. ---*/
 
     if (iPoint_Local > -1) {
-      cout << "Global Point:\t" << iPoint_Global << "\n\t\texists as Local Point " << iPoint_Local << " on rank " << rank << ".\n Setting this value..." << endl;
-      if(!geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetDomain(iPoint_Local)) {
-
-        SU2_MPI::Error("ERROR: Saving point that is a halo node", CURRENT_FUNCTION);
-        return;
-      }
       for (unsigned short iVar = 0; iVar < nVar; iVar++) {
         solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->SetSolution(iPoint_Local, iVar, preCICE_Solution(iPoint_Local, iVar));
           solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->Set_Solution_time_n(iPoint_Local, iVar, preCICE_Solution_time_n(iPoint_Local, iVar));
@@ -370,9 +364,9 @@ void CDriver::ReloadOldState() {
 
   }
 
-  FinalizeFLOW_SOL();
-  if (rans) FinalizeTURB_SOL();
-  if (dynamic_grid) FinalizeMESH_SOL();
+  //FinalizeFLOW_SOL();
+  //if (rans) FinalizeTURB_SOL();
+  //if (dynamic_grid) FinalizeMESH_SOL();
 }
 
 //preCICE: Finalize FLOW reloads
@@ -555,7 +549,7 @@ void CDriver::SaveOldState() {
   // Get the number of solution variables, points, and dimension
   // Problem: am looping through global number of points and indexing as such. Not local.
   const unsigned short nVar = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetnVar();
-  const unsigned long nPoint = geometry_container[ZONE_0][INST_0][MESH_0]->GetnPointDomain();
+  const unsigned long nPoint = geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint();
   const unsigned short nDim = geometry_container[ZONE_0][INST_0][MESH_0]->GetnDim();
   
   // Get if RANS
