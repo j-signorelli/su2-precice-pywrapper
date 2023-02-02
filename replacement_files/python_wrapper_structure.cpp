@@ -323,6 +323,11 @@ void CDriver::ReloadOldState() {
           we will reloadl the vars. ---*/
 
     if (iPoint_Local > -1) {
+      if(!geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetDomain(iPoint_Local)) {
+
+        SU2_MPI::Error("ERROR: Saving point that is a halo node", CURRENT_FUNTION);
+        return;
+      }
       for (unsigned short iVar = 0; iVar < nVar; iVar++) {
         solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->SetSolution(iPoint_Local, iVar, preCICE_Solution(iPoint_Local, iVar));
           solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->Set_Solution_time_n(iPoint_Local, iVar, preCICE_Solution_time_n(iPoint_Local, iVar));
@@ -665,6 +670,7 @@ void CDriver::PrintDebugInfo() {
     }
   }
   
+  /*
   for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
     for (unsigned short iVar = 0; iVar < nVar; iVar++) {
       cout << "preCICE_Solution_time_n(" << iPoint << "," << iVar << "): " << preCICE_Solution_time_n(iPoint, iVar) << endl;
@@ -676,7 +682,7 @@ void CDriver::PrintDebugInfo() {
       cout << "preCICE_Solution_time_n1(" << iPoint << "," << iVar << "): " << preCICE_Solution_time_n1(iPoint, iVar) << endl;
     }
   }
-
+  */
   /*
   if (rans) {
     cout << "RANS-Simulation Detected..." << endl;
