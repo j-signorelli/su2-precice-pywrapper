@@ -323,9 +323,10 @@ void CDriver::ReloadOldState() {
           we will reloadl the vars. ---*/
 
     if (iPoint_Local > -1) {
+      cout << "Global Point " << iPoint_Global << "exists as Local Point " << iPoint_Local << " on this rank.\n Setting this value..." << endl;
       if(!geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetDomain(iPoint_Local)) {
 
-        SU2_MPI::Error("ERROR: Saving point that is a halo node", CURRENT_FUNTION);
+        SU2_MPI::Error("ERROR: Saving point that is a halo node", CURRENT_FUNCTION);
         return;
       }
       for (unsigned short iVar = 0; iVar < nVar; iVar++) {
@@ -640,7 +641,7 @@ void CDriver::PrintDebugInfo() {
   cout << "config_container[ZONE_0]->GetGrid_Movement(): " << config_container[ZONE_0]->GetGrid_Movement() << endl;
   cout << "geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint(): " << geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint() << endl;
   cout << "geometry_container[ZONE_0][INST_0][MESH_0]->GetGlobal_nPointDomain(): " << geometry_container[ZONE_0][INST_0][MESH_0]->GetGlobal_nPointDomain() << endl;
-  //cout << "geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint(): " << geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint() << endl;
+  cout << "geometry_container[ZONE_0][INST_0][MESH_0]->GetnPointDomain(): " << geometry_container[ZONE_0][INST_0][MESH_0]->GetnPointDomain() << endl;
   
   
   // Get the number of solution variables, points, and dimension
