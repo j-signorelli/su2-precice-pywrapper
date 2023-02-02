@@ -323,7 +323,7 @@ void CDriver::ReloadOldState() {
           we will reloadl the vars. ---*/
 
     if (iPoint_Local > -1) {
-      cout << "Global Point " << iPoint_Global << "exists as Local Point " << iPoint_Local << " on this rank.\n Setting this value..." << endl;
+      cout << "Global Point:\t" << iPoint_Global << "\n\t\texists as Local Point " << iPoint_Local << " on rank " << rank << ".\n Setting this value..." << endl;
       if(!geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetDomain(iPoint_Local)) {
 
         SU2_MPI::Error("ERROR: Saving point that is a halo node", CURRENT_FUNCTION);
@@ -555,7 +555,7 @@ void CDriver::SaveOldState() {
   // Get the number of solution variables, points, and dimension
   // Problem: am looping through global number of points and indexing as such. Not local.
   const unsigned short nVar = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetnVar();
-  const unsigned long nPoint = geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint();
+  const unsigned long nPoint = geometry_container[ZONE_0][INST_0][MESH_0]->GetnPointDomain();
   const unsigned short nDim = geometry_container[ZONE_0][INST_0][MESH_0]->GetnDim();
   
   // Get if RANS
