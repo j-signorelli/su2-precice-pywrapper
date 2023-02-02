@@ -634,9 +634,10 @@ void CDriver::PrintDebugInfo() {
 
   cout << "config_container[ZONE_0]->GetGrid_Movement(): " << config_container[ZONE_0]->GetGrid_Movement() << endl;
   cout << "geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint(): " << geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint() << endl;
-  cout << "geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint(): " << geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint() << endl;
+  cout << "geometry_container[ZONE_0][INST_0][MESH_0]->GetGlobal_nPointDomain()" << geometry_container[ZONE_0][INST_0][MESH_0]->GetGlobal_nPointDomain() << endl;
+  //cout << "geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint(): " << geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint() << endl;
   
-  /*
+  
   // Get the number of solution variables, points, and dimension
   const unsigned short nVar = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetnVar();
   const unsigned long nPoint = geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint();
@@ -645,10 +646,6 @@ void CDriver::PrintDebugInfo() {
   // Get if RANS
   const bool rans = config_container[ZONE_0]->GetKind_Turb_Model() != TURB_MODEL::NONE;
   const unsigned short TURB_nVar = (rans) ? solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetnVar() : 0;
-
-  // Get if dual time being used
-  const bool dual_time = ((config_container[ZONE_0]->GetTime_Marching() == TIME_MARCHING::DT_STEPPING_1ST) || 
-                          (config_container[ZONE_0]->GetTime_Marching() == TIME_MARCHING::DT_STEPPING_2ND));
 
   // Get if this is dynamic grid (for unsteady FSI problems)
   const bool dynamic_grid = config_container[ZONE_0]->GetDynamic_Grid();
@@ -660,7 +657,6 @@ void CDriver::PrintDebugInfo() {
   cout << "nDim: " << nDim << endl;
   cout << "RANS? " << rans << endl;
   cout << "TURB_nVar: " << TURB_nVar << endl;
-  cout << "Dual Time? " << dual_time << endl;
   cout << "Dynamic Grid? " << dynamic_grid << endl;
 
   for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
@@ -669,20 +665,20 @@ void CDriver::PrintDebugInfo() {
     }
   }
   
-  if (dual_time) {
-    cout << "Dual time detected..." << endl;
-    for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
-      for (unsigned short iVar = 0; iVar < nVar; iVar++) {
-        cout << "preCICE_Solution_time_n(" << iPoint << "," << iVar << "): " << preCICE_Solution_time_n(iPoint, iVar)
-      }
-    }
-
-    for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
-      for (unsigned short iVar = 0; iVar < nVar; iVar++) {
-        cout << "preCICE_Solution_time_n1(" << iPoint << "," << iVar << "): " << preCICE_Solution_time_n1(iPoint, iVar)
-      }
+  cout << "Dual time detected..." << endl;
+  for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
+    for (unsigned short iVar = 0; iVar < nVar; iVar++) {
+      cout << "preCICE_Solution_time_n(" << iPoint << "," << iVar << "): " << preCICE_Solution_time_n(iPoint, iVar)
     }
   }
+
+  for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
+    for (unsigned short iVar = 0; iVar < nVar; iVar++) {
+      cout << "preCICE_Solution_time_n1(" << iPoint << "," << iVar << "): " << preCICE_Solution_time_n1(iPoint, iVar)
+    }
+  }
+
+  /*
   if (rans) {
     cout << "RANS-Simulation Detected..." << endl;
     for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
@@ -704,6 +700,7 @@ void CDriver::PrintDebugInfo() {
 
   }
   */
+  
 
 }
 
