@@ -317,7 +317,7 @@ void CDriver::ReloadOldState() {
   // Loop through everything and set all necessary variables to current state
   for (unsigned long iPoint_Global = 0; iPoint_Global < geometry_container[ZONE_0][INST_0][MESH_0]->GetGlobal_nPointDomain(); iPoint_Global++) {
 
-    const auto iPoint_Local = geometry[MESH_0]->GetGlobal_to_Local_Point(iPoint_Global);
+    const auto iPoint_Local = geometry_container[ZONE_0][INST_0][MESH_0]->GetGlobal_to_Local_Point(iPoint_Global);
 
     /*--- Retrieve local index. If this node lives on the current processor, 
           we will reloadl the vars. ---*/
@@ -588,7 +588,7 @@ void CDriver::SaveOldState() {
   // Loop through everything and save all necessary variables to reload state
   for (unsigned long iPoint_Global = 0; iPoint_Global < geometry_container[ZONE_0][INST_0][MESH_0]->GetGlobal_nPointDomain(); iPoint_Global++) {
     
-    const auto iPoint_Local = geometry[MESH_0]->GetGlobal_to_Local_Point(iPoint_Global);
+    const auto iPoint_Local = geometry_container[ZONE_0][INST_0][MESH_0]->GetGlobal_to_Local_Point(iPoint_Global);
 
     /*--- Retrieve local index. If this node lives on the current processor, 
           we will save the vars. ---*/
