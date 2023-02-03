@@ -664,7 +664,7 @@ void CDriver::PrintDebugInfo() {
       cout << "preCICE_Solution(" << iPoint << "," << iVar << "): " << preCICE_Solution(iPoint, iVar) << endl;
     }
 
-    cout << "preCICE_Volume("
+    //cout << "preCICE_Volume("
   }
   
   /*
