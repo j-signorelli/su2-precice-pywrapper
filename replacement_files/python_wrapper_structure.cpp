@@ -364,9 +364,9 @@ void CDriver::ReloadOldState() {
 
   }
 
-  //FinalizeFLOW_SOL();
-  //if (rans) FinalizeTURB_SOL();
-  //if (dynamic_grid) FinalizeMESH_SOL();
+  FinalizeFLOW_SOL();
+  if (rans) FinalizeTURB_SOL();
+  if (dynamic_grid) FinalizeMESH_SOL();
 }
 
 //preCICE: Finalize FLOW reloads
@@ -663,6 +663,8 @@ void CDriver::PrintDebugInfo() {
     for (unsigned short iVar = 0; iVar < nVar; iVar++) {
       cout << "preCICE_Solution(" << iPoint << "," << iVar << "): " << preCICE_Solution(iPoint, iVar) << endl;
     }
+
+    cout << "preCICE_Volume("
   }
   
   /*
