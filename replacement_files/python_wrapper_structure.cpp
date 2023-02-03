@@ -402,6 +402,13 @@ void CDriver::FinalizeFLOW_SOL() {
   solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION);
   solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION);
 
+  solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION_TIME_N);
+  solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION_TIME_N);
+  
+  solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION_TIME_N1);
+  solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION_TIME_N1);
+
+
 
   /*--- For turbulent/species simulations the flow preprocessing is done by the turbulence/species solver
    *    after it loads its variables (they are needed to compute flow primitives). In case turbulence and species, the
