@@ -664,45 +664,7 @@ void CDriver::PrintDebugInfo() {
       cout << "preCICE_Solution(" << iPoint << "," << iVar << "): " << preCICE_Solution(iPoint, iVar) << endl;
     }
 
-    //cout << "preCICE_Volume("
   }
-  
-  /*
-  for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
-    for (unsigned short iVar = 0; iVar < nVar; iVar++) {
-      cout << "preCICE_Solution_time_n(" << iPoint << "," << iVar << "): " << preCICE_Solution_time_n(iPoint, iVar) << endl;
-    }
-  }
-
-  for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
-    for (unsigned short iVar = 0; iVar < nVar; iVar++) {
-      cout << "preCICE_Solution_time_n1(" << iPoint << "," << iVar << "): " << preCICE_Solution_time_n1(iPoint, iVar) << endl;
-    }
-  }
-  */
-  /*
-  if (rans) {
-    cout << "RANS-Simulation Detected..." << endl;
-    for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
-      for (unsigned short TURB_iVar = 0; TURB_iVar < TURB_nVar; iVar++) {
-        cout << "preCICE_TURB_Solution(" << iPoint << "," << TURBiVar << "): " << preCICE_TURB_Solution(iPoint, TURB_iVar)
-      }
-    }
-    for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
-      for (unsigned short TURB_iVar = 0; TURB_iVar < TURB_nVar; iVar++) {
-        cout << "preCICE_TURB_Solution_time_n(" << iPoint << "," << TURBiVar << "): " << preCICE_TURB_Solution_time_n(iPoint, TURB_iVar)
-      }
-    }
-    for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
-      for (unsigned short TURB_iVar = 0; TURB_iVar < TURB_nVar; iVar++) {
-        cout << "preCICE_TURB_Solution_time_n1(" << iPoint << "," << TURBiVar << "): " << preCICE_TURB_Solution_time_n1(iPoint, TURB_iVar)
-      }
-    }
-
-
-  }
-  */
-  
 
 }
 
