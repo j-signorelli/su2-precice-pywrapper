@@ -312,7 +312,9 @@ void CDriver::ReloadOldState() {
   // Get if this is dynamic grid (for unsteady FSI problems)
   const bool dynamic_grid = config_container[ZONE_0]->GetDynamic_Grid();
   const unsigned short MESH_nVar = (dynamic_grid) ? solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetnVar() : 0;
-  
+
+  /*--- To make this routine safe to call in parallel most of it can only be executed by one thread. ---*/
+  BEGIN_SU2_OMP_SAFE_GLOBAL_ACCESS {
 
   // Loop through everything and set all necessary variables to current state
   for (unsigned long iPoint_Global = 0; iPoint_Global < geometry_container[ZONE_0][INST_0][MESH_0]->GetGlobal_nPointDomain(); iPoint_Global++) {
@@ -324,7 +326,7 @@ void CDriver::ReloadOldState() {
 
     if (iPoint_Local > -1) {
       for (unsigned short iVar = 0; iVar < nVar; iVar++) {
-        solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->SetSolution(iPoint_Local, iVar, preCICE_Solution(iPoint_Local, iVar));
+          solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->SetSolution(iPoint_Local, iVar, preCICE_Solution(iPoint_Local, iVar));
           solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->Set_Solution_time_n(iPoint_Local, iVar, preCICE_Solution_time_n(iPoint_Local, iVar));
           solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->Set_Solution_time_n1(iPoint_Local, iVar, preCICE_Solution_time_n1(iPoint_Local, iVar));
       }
@@ -364,6 +366,9 @@ void CDriver::ReloadOldState() {
 
   }
 
+  }  // end safe global access, pre and postprocessing are thread-safe.
+  END_SU2_OMP_SAFE_GLOBAL_ACCESS
+
   FinalizeFLOW_SOL();
   if (rans) FinalizeTURB_SOL();
   if (dynamic_grid) FinalizeMESH_SOL();
@@ -401,13 +406,6 @@ void CDriver::FinalizeFLOW_SOL() {
 
   solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION);
   solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION);
-
-  solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION_TIME_N);
-  solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION_TIME_N);
-  
-  solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION_TIME_N1);
-  solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION_TIME_N1);
-
 
 
   /*--- For turbulent/species simulations the flow preprocessing is done by the turbulence/species solver
@@ -670,8 +668,11 @@ void CDriver::PrintDebugInfo() {
     for (unsigned short iVar = 0; iVar < nVar; iVar++) {
       cout << "preCICE_Solution(" << iPoint << "," << iVar << "): " << preCICE_Solution(iPoint, iVar) << endl;
     }
-
   }
+  for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++)
+    for (unsigned short iVar = 0; iVar < nVar; iVar++)
+      cout << "solution_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->GetSolution(" << iPoint << "," << iVar << "): " << solution_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->GetSolution(iPoint, iVar) << endl;
+      
 
 }
 
