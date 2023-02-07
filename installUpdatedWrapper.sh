@@ -44,16 +44,16 @@ then
     printf "Previous build options obtained\n"
     printf "To update the build and installation for the adapter, go to $SU2_HOME and run:\n\n\t\t./meson.py build --wipe$BUILD_OPTIONS"
     
-    if [[ '$PYBUILD_OPTION' != *'$BUILD_OPTIONS'* ]]
+    if [[ '$BUILD_OPTIONS' != *'$PYBUILD_OPTION'* ]]
     then
-        printf " $PYBUILD_OPTION\n\n"
+        printf " $PYBUILD_OPTION"
     fi
 else
 
     printf "No previous build detected. To configure with the Python wrapper, navigate to $SU2_HOME and run as follows:\n\n\t\t./meson.py build -Denable-pywrapper=true [insert other build options here]\n"  
 fi
 
-printf "\t\t./ninja -C build install\n\n"
+printf "\n\t\t./ninja -C build install\n\n"
 
 
 printf "Please ensure MPI is enabled\n"
