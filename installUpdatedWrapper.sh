@@ -3,10 +3,10 @@
 
 # This auxiliary script simplifies the installation of the preCICE-adapter for SU2. It copies the adapted SU2-files to the correct locations based on the environment variable SU2_HOME.
 # Copied from SU2 Adapter
-# SU2 version: 7.5.0 "Blackbird"
+# SU2 version: 7.5.1 "Blackbird"
 
-# SU2 version for which this adapter was made
-VERSION="7.5.0 \"Blackbird\""
+# SU2 versions for which this adapter was made
+VERSIONS="7.5.1 \"Blackbird\"|7.5.0 \"Blackbird\""
 
 # Always run this script from current directory
 cd "$(dirname "$0")"
@@ -17,22 +17,46 @@ printf "\nChecking whether the necessary environment variables are set...\n"
 printf "Necessary environment variables are set.\n"
 
 # Check for SU2 version
-printf "\nChecking whether updated Python wrapper and SU2 version are compatible..."
-if sed '1,10!d' $SU2_HOME/SU2_CFD/src/SU2_CFD.cpp | grep -Fq "$VERSION"
+printf "\nChecking whether updated adapter and SU2 version are compatible..."
+if sed '1,10!d' $SU2_HOME/SU2_CFD/src/SU2_CFD.cpp | grep -Eq "$VERSION"
 then
     printf " yes.\n"
 else
-    printf " no.\nThis wrapper was built using SU2 version $VERSION.\nAborting.\n"
+    printf " no.\nThis adapter was built using SU2 version $VERSION.\nAborting.\n"
     exit 1;
 fi
 
 # Replace SU2 files
-printf "Replacing original python wrapper with updated one..."
+printf "Replacing files..."
 cp replacement_files/python_wrapper_structure.cpp $SU2_HOME/SU2_CFD/src  || { printf >&2 "\nCannot copy python_wrapper_structure.cpp over. Is variable SU2_HOME set correctly? Are you running the script from the correct directory?\nAborting.\n"; exit 1; }
 cp replacement_files/CDriver.hpp $SU2_HOME/SU2_CFD/include/drivers  || { printf >&2 "\nCannot copy CDriver.hpp over. Is variable SU2_HOME set correctly? Are you running the script from the correct directory?\nAborting.\n"; exit 1; }
 
 # Output to guide the user
-printf "\nPlease navigate to the SU2 home directory $SU2_HOME and all that you have to do is very simply run:\n"
+printf "\nPlease navigate to the SU2 home directory $SU2_HOME to re-configure and build SU2.\nNote that meson must be wiped for changes to take effect.\n\n"
+
+# Check if SU2 has been built before, if so:
+if [[ -f $SU2_HOME/build/meson-logs/meson-log.txt ]]
+then
+    BUILD_LINE=$(grep -P "Build Options: " $SU2_HOME/build/meson-logs/meson-log.txt)
+    BUILD_OPTIONS=$(cut -d ":" -f2 <<< "$BUILD_LINE")
+    PYBUILD_OPTION="-Denable-pywrapper=true"
+
+    printf "Previous build options obtained.\n"
+    printf "To update the build and installation for the adapter, go to $SU2_HOME and run:\n\n\t\t./meson.py build --wipe$BUILD_OPTIONS"
+    
+    if [[ "$BUILD_OPTIONS" != *"$PYBUILD_OPTION"* ]]
+    then
+        printf " $PYBUILD_OPTION"
+    fi
+else
+
+    printf "No previous build detected. To configure with the Python wrapper, navigate to $SU2_HOME and run as follows:\n\n\t\t./meson.py build -Denable-pywrapper=true [insert other build options here]\n"  
+fi
+
 printf "\n\t\t./ninja -C build install\n\n"
 
-printf "Wrapper successfully copied over. Ideally required added functionalities are implemented in future version of SU2.\n"
+
+printf "Please ensure MPI is enabled.\n"
+printf "Note that you must have swig and mpi4py installed for the SU2 Python wrapper, see the SU2 installation instructions for further information.\n"
+printf "Also note that you must have the preCICE Python bindings set up as well, see the preCICE website for further information.\n"
+printf "SU2 adapter successfully installed over.\n"

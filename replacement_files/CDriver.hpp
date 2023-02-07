@@ -1,16 +1,18 @@
 /*!
+ *
+ * Edited to include required capabilities for coupling with preCICE
  * \file driver_structure.hpp
  * \brief Headers of the main subroutines for driving single or multi-zone problems.
  *        The subroutines and functions are in the <i>driver_structure.cpp</i> file.
  * \author T. Economon, H. Kline, R. Sanchez
- * \version 7.5.0 "Blackbird"
+ * \version 7.5.1 "Blackbird"
  *
  * SU2 Project Website: https://su2code.github.io
  *
  * The SU2 Project is maintained by the SU2 Foundation
  * (http://su2foundation.org)
  *
- * Copyright 2012-2022, SU2 Contributors (cf. AUTHORS.md)
+ * Copyright 2012-2023, SU2 Contributors (cf. AUTHORS.md)
  *
  * SU2 is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -35,6 +37,9 @@
 #include "../interfaces/CInterface.hpp"
 
 #include "../../../Common/include/geometry/CGeometry.hpp"
+
+//preCICE: include required header file for MatrixType
+#include "../../../Common/include/containers/container_decorators.hpp"
 
 using namespace std;
 
@@ -99,6 +104,25 @@ protected:
   interpolator_container;                       /*!< \brief Definition of the interpolation method between non-matching discretizations of the interface. */
   CInterface ***interface_container;            /*!< \brief Definition of the interface of information and physics. */
   bool dry_run;                                 /*!< \brief Flag if SU2_CFD was started as dry-run via "SU2_CFD -d <config>.cfg" */
+
+  // preCICE:
+  using MatrixType = C2DContainer<unsigned long, su2double, StorageType::RowMajor,    64, DynamicSize, DynamicSize>;
+  MatrixType preCICE_Solution;                  /*!< \brief FLOW Solution of the problem - for preCICE implicit coupling. */
+  MatrixType preCICE_Solution_time_n;           /*!< \brief FLOW Solution of the problem at time n for dual-time stepping technique - for preCICE implicit coupling. */
+  MatrixType preCICE_Solution_time_n1;          /*!< \brief FLOW Solution of the problem at time n-1 for dual-time stepping technique - for preCICE implicit coupling. */
+  MatrixType preCICE_TURB_Solution;             /*!< \brief TURB Solution of the problem - for preCICE implicit coupling. */
+  MatrixType preCICE_TURB_Solution_time_n;      /*!< \brief TURB Solution of the problem at time n for dual-time stepping technique - for preCICE implicit coupling. */
+  MatrixType preCICE_TURB_Solution_time_n1;     /*!< \brief TURB Solution of the problem at time n-1 for dual-time stepping technique - for preCICE implicit coupling. */
+  MatrixType preCICE_MESH_Solution;             /*!< \brief MESH Solution of the problem - for preCICE implicit coupling. */
+  MatrixType preCICE_MESH_Solution_time_n;      /*!< \brief MESH Solution of the problem at time n for dual-time stepping technique - for preCICE implicit coupling. */
+  MatrixType preCICE_MESH_Solution_time_n1;     /*!< \brief MESHSolution of the problem at time n-1 for dual-time stepping technique - for preCICE implicit coupling. */
+
+  
+  su2activematrix preCICE_Coord;                /*!< \brief vector with the coordinates of the node - for preCICE implicit coupling. */
+  su2activematrix preCICE_GridVel;              /*!< \brief Velocity of the grid for dynamic mesh cases - for preCICE implicit coupling. */
+  su2activevector preCICE_Volume;               /*!< \brief Volume or Area of the control volume in 3D and 2D - for preCICE implicit coupling. */
+  su2activevector preCICE_Volume_n;             /*!< \brief Volume at time n - for preCICE implicit coupling. */
+  su2activevector preCICE_Volume_nM1;           /*!< \brief Volume at time n-1 - for preCICE implicit coupling. */
 
 public:
 
@@ -340,6 +364,24 @@ protected:
    */
   void Print_DirectResidual(RECORDING kind_recording);
 
+  /*!
+   * \brief Finalize reloading FLOW_SOL, for preCICE implicit coupling
+   * Precondition: SaveOldState called first
+   */
+   void FinalizeFLOW_SOL();
+
+   /*!
+   * \brief Finalize reloading TURB_SOL, for preCICE implicit coupling
+   * Precondition: SaveOldState called first, RANS sim
+   */
+   void FinalizeTURB_SOL();
+
+  /*!
+   * \brief Finalize reloading MESH_SOL, for preCICE implicit coupling
+   * Precondition: SaveOldState called first, DEFORM_MESH= YES
+   */
+   void FinalizeMESH_SOL();
+
 public:
 
   /*!
@@ -475,10 +517,25 @@ public:
   passivedouble GetUnsteady_TimeStep() const;
 
   /*!
-   * \brief Set the unsteady time step.
-   * \return Unsteady time step.
+   * \brief Set the unsteady time step, for preCICE
+   * \param[in] val_delta_unsttime - dimensional timestep to set
    */
   void SetUnsteady_TimeStep(passivedouble val_delta_unsttime);
+
+  /*!
+   * \brief Reload saved old state, for preCICE implicit coupling
+   * Precondition: SaveOldState called first
+   */
+  void ReloadOldState();
+
+  /*!
+   * \brief Save old state, for preCICE implicit coupling
+  */
+  void SaveOldState();
+  /*!
+   * \brief Debug info, for preCICE implicit coupling
+  */
+  void PrintDebugInfo();
 
   /*!
    * \brief Get the name of the output file for the surface.
@@ -501,7 +558,7 @@ public:
    * \return x,y,z coordinates of the vertex.
    */
   vector<passivedouble> GetInitialMeshCoord(unsigned short iMarker, unsigned long iVertex) const;
-
+  
   /*!
    * \brief Get the temperature at a vertex on a specified marker.
    * \param[in] iMarker - Marker identifier.
