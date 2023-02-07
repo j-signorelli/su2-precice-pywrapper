@@ -302,7 +302,7 @@ void CDriver::ReloadOldState() {
 
   // Get the number of solution variables, points, and dimension
   const unsigned short nVar = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetnVar();
-  const unsigned long nPoint = geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint();
+  const unsigned long nPoint_Local = geometry_container[ZONE_0][INST_0][MESH_0]->GetnPointDomain();
   const unsigned short nDim = geometry_container[ZONE_0][INST_0][MESH_0]->GetnDim();
   
   // Get if RANS
@@ -317,51 +317,44 @@ void CDriver::ReloadOldState() {
   BEGIN_SU2_OMP_SAFE_GLOBAL_ACCESS {
 
   // Loop through everything and set all necessary variables to current state
-  for (unsigned long iPoint_Global = 0; iPoint_Global < geometry_container[ZONE_0][INST_0][MESH_0]->GetGlobal_nPointDomain(); iPoint_Global++) {
+  for (unsigned long iPoint_Local = 0; iPoint_Local < nPoint_Local; iPoint_Local++) {
 
-    const auto iPoint_Local = geometry_container[ZONE_0][INST_0][MESH_0]->GetGlobal_to_Local_Point(iPoint_Global);
-
-    /*--- Retrieve local index. If this node lives on the current processor, 
-          we will reloadl the vars. ---*/
-
-    if (iPoint_Local > -1) {
-      for (unsigned short iVar = 0; iVar < nVar; iVar++) {
-          solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->SetSolution(iPoint_Local, iVar, preCICE_Solution(iPoint_Local, iVar));
-          solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->Set_Solution_time_n(iPoint_Local, iVar, preCICE_Solution_time_n(iPoint_Local, iVar));
-          solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->Set_Solution_time_n1(iPoint_Local, iVar, preCICE_Solution_time_n1(iPoint_Local, iVar));
+    for (unsigned short iVar = 0; iVar < nVar; iVar++) {
+        solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->SetSolution(iPoint_Local, iVar, preCICE_Solution(iPoint_Local, iVar));
+        solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->Set_Solution_time_n(iPoint_Local, iVar, preCICE_Solution_time_n(iPoint_Local, iVar));
+        solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->Set_Solution_time_n1(iPoint_Local, iVar, preCICE_Solution_time_n1(iPoint_Local, iVar));
+    }
+    if (rans) {
+      for (unsigned short TURB_iVar = 0; TURB_iVar < TURB_nVar; TURB_iVar++) {
+        solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->SetSolution(iPoint_Local, TURB_iVar, preCICE_TURB_Solution(iPoint_Local, TURB_iVar));
+        solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->Set_Solution_time_n(iPoint_Local, TURB_iVar, preCICE_TURB_Solution_time_n(iPoint_Local, TURB_iVar));
+        solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->Set_Solution_time_n1(iPoint_Local, TURB_iVar, preCICE_TURB_Solution_time_n1(iPoint_Local, TURB_iVar));
       }
-      if (rans) {
-        for (unsigned short TURB_iVar = 0; TURB_iVar < TURB_nVar; TURB_iVar++) {
-          solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->SetSolution(iPoint_Local, TURB_iVar, preCICE_TURB_Solution(iPoint_Local, TURB_iVar));
-          solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->Set_Solution_time_n(iPoint_Local, TURB_iVar, preCICE_TURB_Solution_time_n(iPoint_Local, TURB_iVar));
-          solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->Set_Solution_time_n1(iPoint_Local, TURB_iVar, preCICE_TURB_Solution_time_n1(iPoint_Local, TURB_iVar));
-        }
-      }    
-      if (dynamic_grid) {
+    }    
+    if (dynamic_grid) {
 
-        for (unsigned short MESH_iVar = 0; MESH_iVar < MESH_nVar; MESH_iVar++) {
-          solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->SetSolution(iPoint_Local, MESH_iVar, preCICE_MESH_Solution(iPoint_Local, MESH_iVar));
-          solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->Set_Solution_time_n(iPoint_Local, MESH_iVar, preCICE_MESH_Solution_time_n(iPoint_Local, MESH_iVar));
-          solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->Set_Solution_time_n1(iPoint_Local, MESH_iVar, preCICE_MESH_Solution_time_n1(iPoint_Local, MESH_iVar));
-        }
-
-        for (unsigned short iDim = 0; iDim < nDim; iDim++) {
-          geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetCoord(iPoint_Local,iDim, preCICE_Coord(iPoint_Local,iDim));
-          geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetGridVel(iPoint_Local, iDim, preCICE_GridVel(iPoint_Local, iDim));
-        }
-        
-        
-        //Temporarily must set volume and then set appropriate n, n1, then reset Volume
-        // Order may seem awkward, but look at CPoint::SetVolume_____ functions to understand why
-        geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetVolume(iPoint_Local, preCICE_Volume_nM1(iPoint_Local));
-        geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetVolume_n();
-        geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetVolume_nM1();
-
-        geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetVolume(iPoint_Local, preCICE_Volume_n(iPoint_Local));
-        geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetVolume_n();
-
-        geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetVolume(iPoint_Local, preCICE_Volume(iPoint_Local));
+      for (unsigned short MESH_iVar = 0; MESH_iVar < MESH_nVar; MESH_iVar++) {
+        solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->SetSolution(iPoint_Local, MESH_iVar, preCICE_MESH_Solution(iPoint_Local, MESH_iVar));
+        solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->Set_Solution_time_n(iPoint_Local, MESH_iVar, preCICE_MESH_Solution_time_n(iPoint_Local, MESH_iVar));
+        solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->Set_Solution_time_n1(iPoint_Local, MESH_iVar, preCICE_MESH_Solution_time_n1(iPoint_Local, MESH_iVar));
       }
+
+      for (unsigned short iDim = 0; iDim < nDim; iDim++) {
+        geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetCoord(iPoint_Local,iDim, preCICE_Coord(iPoint_Local,iDim));
+        geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetGridVel(iPoint_Local, iDim, preCICE_GridVel(iPoint_Local, iDim));
+      }
+      
+      
+      //Temporarily must set volume and then set appropriate n, n1, then reset Volume
+      // Order may seem awkward, but look at CPoint::SetVolume_____ functions to understand why
+      geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetVolume(iPoint_Local, preCICE_Volume_nM1(iPoint_Local));
+      geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetVolume_n();
+      geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetVolume_nM1();
+
+      geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetVolume(iPoint_Local, preCICE_Volume_n(iPoint_Local));
+      geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetVolume_n();
+
+      geometry_container[ZONE_0][INST_0][MESH_0]->nodes->SetVolume(iPoint_Local, preCICE_Volume(iPoint_Local));
     }
 
   }
@@ -554,7 +547,7 @@ void CDriver::SaveOldState() {
   // Get the number of solution variables, points, and dimension
   // Problem: am looping through global number of points and indexing as such. Not local.
   const unsigned short nVar = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetnVar();
-  const unsigned long nPoint = geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint();
+  const unsigned long nPoint_Local = geometry_container[ZONE_0][INST_0][MESH_0]->GetnPointDomain();
   const unsigned short nDim = geometry_container[ZONE_0][INST_0][MESH_0]->GetnDim();
   
   // Get if RANS
@@ -566,70 +559,63 @@ void CDriver::SaveOldState() {
   const unsigned short MESH_nVar = (dynamic_grid) ? solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetnVar() : 0;
   
   // Instantiate all required member variables if they aren't already
-  if (preCICE_Solution.empty()) preCICE_Solution.resize(nPoint, nVar) = su2double(0.0);
-  if (preCICE_Solution_time_n.empty()) preCICE_Solution_time_n.resize(nPoint,nVar) = su2double(0.0);
-  if (preCICE_Solution_time_n1.empty()) preCICE_Solution_time_n1.resize(nPoint,nVar) = su2double(0.0);
+  if (preCICE_Solution.empty()) preCICE_Solution.resize(nPoint_Local, nVar) = su2double(0.0);
+  if (preCICE_Solution_time_n.empty()) preCICE_Solution_time_n.resize(nPoint_Local,nVar) = su2double(0.0);
+  if (preCICE_Solution_time_n1.empty()) preCICE_Solution_time_n1.resize(nPoint_Local,nVar) = su2double(0.0);
 
   if (rans) {
-    if (preCICE_TURB_Solution.empty()) preCICE_TURB_Solution.resize(nPoint,TURB_nVar) = su2double(0.0);
-    if (preCICE_TURB_Solution_time_n.empty()) preCICE_TURB_Solution_time_n.resize(nPoint,TURB_nVar) = su2double(0.0);
-    if (preCICE_TURB_Solution_time_n1.empty()) preCICE_TURB_Solution_time_n1.resize(nPoint,TURB_nVar) = su2double(0.0);
+    if (preCICE_TURB_Solution.empty()) preCICE_TURB_Solution.resize(nPoint_Local,TURB_nVar) = su2double(0.0);
+    if (preCICE_TURB_Solution_time_n.empty()) preCICE_TURB_Solution_time_n.resize(nPoint_Local,TURB_nVar) = su2double(0.0);
+    if (preCICE_TURB_Solution_time_n1.empty()) preCICE_TURB_Solution_time_n1.resize(nPoint_Local,TURB_nVar) = su2double(0.0);
   }
 
   if (dynamic_grid) {
-    if (preCICE_MESH_Solution.empty()) preCICE_MESH_Solution.resize(nPoint,MESH_nVar) = su2double(0.0);
-    if (preCICE_MESH_Solution_time_n.empty()) preCICE_MESH_Solution_time_n.resize(nPoint,MESH_nVar) = su2double(0.0);
-    if (preCICE_MESH_Solution_time_n1.empty()) preCICE_MESH_Solution_time_n1.resize(nPoint,MESH_nVar) = su2double(0.0);
+    if (preCICE_MESH_Solution.empty()) preCICE_MESH_Solution.resize(nPoint_Local,MESH_nVar) = su2double(0.0);
+    if (preCICE_MESH_Solution_time_n.empty()) preCICE_MESH_Solution_time_n.resize(nPoint_Local,MESH_nVar) = su2double(0.0);
+    if (preCICE_MESH_Solution_time_n1.empty()) preCICE_MESH_Solution_time_n1.resize(nPoint_Local,MESH_nVar) = su2double(0.0);
   
 
-    if (preCICE_Coord.empty()) preCICE_Coord.resize(nPoint, nDim) = su2double(0.0);
-    if (preCICE_GridVel.empty()) preCICE_GridVel.resize(nPoint,nDim) = su2double(0.0);
-    if (preCICE_Volume.empty()) preCICE_Volume.resize(nPoint) = su2double(0.0);
-    if (preCICE_Volume_n.empty()) preCICE_Volume_n.resize(nPoint) = su2double(0.0);
-    if (preCICE_Volume_nM1.empty()) preCICE_Volume_nM1.resize(nPoint) = su2double(0.0);
+    if (preCICE_Coord.empty()) preCICE_Coord.resize(nPoint_Local, nDim) = su2double(0.0);
+    if (preCICE_GridVel.empty()) preCICE_GridVel.resize(nPoint_Local,nDim) = su2double(0.0);
+    if (preCICE_Volume.empty()) preCICE_Volume.resize(nPoint_Local) = su2double(0.0);
+    if (preCICE_Volume_n.empty()) preCICE_Volume_n.resize(nPoint_Local) = su2double(0.0);
+    if (preCICE_Volume_nM1.empty()) preCICE_Volume_nM1.resize(nPoint_Local) = su2double(0.0);
   }
 
 
   // Loop through everything and save all necessary variables to reload state
-  for (unsigned long iPoint_Global = 0; iPoint_Global < geometry_container[ZONE_0][INST_0][MESH_0]->GetGlobal_nPointDomain(); iPoint_Global++) {
+  for (unsigned long iPoint_Local = 0; iPoint_Local < nPoint_Local; iPoint_Local++) {
     
-    const auto iPoint_Local = geometry_container[ZONE_0][INST_0][MESH_0]->GetGlobal_to_Local_Point(iPoint_Global);
+    for (unsigned short iVar = 0; iVar < nVar; iVar++) {
+      preCICE_Solution(iPoint_Local, iVar) = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->GetSolution(iPoint_Local, iVar);
+      preCICE_Solution_time_n(iPoint_Local, iVar) = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->GetSolution_time_n(iPoint_Local, iVar);
+      preCICE_Solution_time_n1(iPoint_Local, iVar) = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->GetSolution_time_n1(iPoint_Local, iVar);
+    }
 
-    /*--- Retrieve local index. If this node lives on the current processor, 
-          we will save the vars. ---*/
+    if (rans) {
+      for (unsigned short TURB_iVar = 0; TURB_iVar < TURB_nVar; TURB_iVar++) {
+        preCICE_TURB_Solution(iPoint_Local, TURB_iVar) = solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->GetSolution(iPoint_Local, TURB_iVar);
+        preCICE_TURB_Solution_time_n(iPoint_Local, TURB_iVar) = solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->GetSolution_time_n(iPoint_Local, TURB_iVar);
+        preCICE_TURB_Solution_time_n1(iPoint_Local, TURB_iVar) = solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->GetSolution_time_n1(iPoint_Local, TURB_iVar);
+      }
+    }
 
-    if (iPoint_Local > -1) {
-      for (unsigned short iVar = 0; iVar < nVar; iVar++) {
-        preCICE_Solution(iPoint_Local, iVar) = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->GetSolution(iPoint_Local, iVar);
-        preCICE_Solution_time_n(iPoint_Local, iVar) = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->GetSolution_time_n(iPoint_Local, iVar);
-        preCICE_Solution_time_n1(iPoint_Local, iVar) = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->GetSolution_time_n1(iPoint_Local, iVar);
+    if (dynamic_grid) {
+      for (unsigned short MESH_iVar = 0; MESH_iVar < MESH_nVar; MESH_iVar++) {
+        preCICE_MESH_Solution(iPoint_Local, MESH_iVar) = solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->GetSolution(iPoint_Local, MESH_iVar);
+        preCICE_MESH_Solution_time_n(iPoint_Local, MESH_iVar) = solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->GetSolution_time_n(iPoint_Local, MESH_iVar);
+        preCICE_MESH_Solution_time_n1(iPoint_Local, MESH_iVar) = solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->GetSolution_time_n1(iPoint_Local, MESH_iVar);
       }
 
-      if (rans) {
-        for (unsigned short TURB_iVar = 0; TURB_iVar < TURB_nVar; TURB_iVar++) {
-          preCICE_TURB_Solution(iPoint_Local, TURB_iVar) = solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->GetSolution(iPoint_Local, TURB_iVar);
-          preCICE_TURB_Solution_time_n(iPoint_Local, TURB_iVar) = solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->GetSolution_time_n(iPoint_Local, TURB_iVar);
-          preCICE_TURB_Solution_time_n1(iPoint_Local, TURB_iVar) = solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetNodes()->GetSolution_time_n1(iPoint_Local, TURB_iVar);
-        }
+
+      for (unsigned short iDim = 0; iDim < nDim; iDim++) {
+        preCICE_Coord(iPoint_Local,iDim) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetCoord(iPoint_Local,iDim);
+        preCICE_GridVel(iPoint_Local, iDim) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetGridVel(iPoint_Local)[iDim];
       }
-
-      if (dynamic_grid) {
-        for (unsigned short MESH_iVar = 0; MESH_iVar < MESH_nVar; MESH_iVar++) {
-          preCICE_MESH_Solution(iPoint_Local, MESH_iVar) = solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->GetSolution(iPoint_Local, MESH_iVar);
-          preCICE_MESH_Solution_time_n(iPoint_Local, MESH_iVar) = solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->GetSolution_time_n(iPoint_Local, MESH_iVar);
-          preCICE_MESH_Solution_time_n1(iPoint_Local, MESH_iVar) = solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->GetSolution_time_n1(iPoint_Local, MESH_iVar);
-        }
-
-
-        for (unsigned short iDim = 0; iDim < nDim; iDim++) {
-          preCICE_Coord(iPoint_Local,iDim) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetCoord(iPoint_Local,iDim);
-          preCICE_GridVel(iPoint_Local, iDim) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetGridVel(iPoint_Local)[iDim];
-        }
-        
-        preCICE_Volume(iPoint_Local) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetVolume(iPoint_Local);
-        preCICE_Volume_n(iPoint_Local) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetVolume_n(iPoint_Local);
-        preCICE_Volume_nM1(iPoint_Local) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetVolume_nM1(iPoint_Local);
-      }
+      
+      preCICE_Volume(iPoint_Local) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetVolume(iPoint_Local);
+      preCICE_Volume_n(iPoint_Local) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetVolume_n(iPoint_Local);
+      preCICE_Volume_nM1(iPoint_Local) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetVolume_nM1(iPoint_Local);
     }
   }
 }
