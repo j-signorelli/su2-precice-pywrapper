@@ -1,6 +1,6 @@
 /*!
  *
- * Edited to include required capabilities for coupling with preCICE for CHT
+ * Edited to include required capabilities for coupling with preCICE
  * \file python_wrapper_structure.cpp
  * \brief Driver subroutines that are used by the Python wrapper. Those routines are usually called from an external Python environment.
  * \author D. Thomas
