@@ -17,44 +17,44 @@ printf "\nChecking whether the necessary environment variables are set...\n"
 printf "Necessary environment variables are set.\n"
 
 # Check for SU2 version
-printf "\nChecking whether updated Python wrapper and SU2 version are compatible..."
+printf "\nChecking whether updated adapter and SU2 version are compatible..."
 if sed '1,10!d' $SU2_HOME/SU2_CFD/src/SU2_CFD.cpp | grep -Eq "$VERSION"
 then
     printf " yes.\n"
 else
-    printf " no.\nThis wrapper was built using SU2 version $VERSION.\nAborting.\n"
+    printf " no.\nThis adapter was built using SU2 version $VERSION.\nAborting.\n"
     exit 1;
 fi
 
 # Replace SU2 files
-printf "Replacing original python wrapper with updated one..."
+printf "Replacing files..."
 cp replacement_files/python_wrapper_structure.cpp $SU2_HOME/SU2_CFD/src  || { printf >&2 "\nCannot copy python_wrapper_structure.cpp over. Is variable SU2_HOME set correctly? Are you running the script from the correct directory?\nAborting.\n"; exit 1; }
 cp replacement_files/CDriver.hpp $SU2_HOME/SU2_CFD/include/drivers  || { printf >&2 "\nCannot copy CDriver.hpp over. Is variable SU2_HOME set correctly? Are you running the script from the correct directory?\nAborting.\n"; exit 1; }
 
 # Output to guide the user
-printf "\nPlease navigate to the SU2 home directory $SU2_HOME to re-configure and build SU2. Note that meson must be wiped for changes to take effect.\n\n"
+printf "\nPlease navigate to the SU2 home directory $SU2_HOME to re-configure and build SU2.\nNote that meson must be wiped for changes to take effect.\n\n"
 
 # Check if SU2 has been built before, if so:
-if [-f $SU2_HOME/build/meson-logs/meson-log.txt]
+if [[ -f $SU2_HOME/build/meson-logs/meson-log.txt ]]
 then
     BUILD_LINE=$(grep -P "Build Options: " $SU2_HOME/build/meson-logs/meson-log.txt)
     BUILD_OPTIONS=$(cut -d ":" -f2 <<< "$BUILD_LINE")
     PYBUILD_OPTION="-Denable-pywrapper=true"
 
     printf "Previous build options obtained\n"
-    printf "To update the build and installation for the adapter, go to $SU2_HOME and run:\n\t\t./meson.py build --wipe$BUILD_OPTIONS"
+    printf "To update the build and installation for the adapter, go to $SU2_HOME and run:\n\n\t\t./meson.py build --wipe$BUILD_OPTIONS"
     
-    if [["$PYBUILD_OPTION" != *"$BUILD_OPTIONS"*]]
+    if [[ '$PYBUILD_OPTION' != *'$BUILD_OPTIONS'* ]]
     then
-        printf " $PYBUILD_OPTION\n"
+        printf " $PYBUILD_OPTION\n\n"
     fi
 else
 
-    printf "No previous build detected. To configure with the Python wrapper, navigate to $SU2_HOME and run as follows:\n\t\t./meson.py build -Denable-pywrapper=true [insert other build options here]\n"  
+    printf "No previous build detected. To configure with the Python wrapper, navigate to $SU2_HOME and run as follows:\n\n\t\t./meson.py build -Denable-pywrapper=true [insert other build options here]\n"  
 fi
 
-printf "\t\t./ninja -C build install"
+printf "\t\t./ninja -C build install\n\n"
 
 
-printf "\nPlease ensure MPI is enabled\n"
+printf "Please ensure MPI is enabled\n"
 printf "SU2 adapter successfully installed over.\n"
