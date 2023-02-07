@@ -224,26 +224,7 @@ vector<passivedouble> CDriver::GetInitialMeshCoord(unsigned short iMarker, unsig
    coord[iDim] = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetCoord(iPoint,iDim);
                   //solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->GetMesh_Coord(iPoint,iDim);
     // CSolver object only instantiates coordinates if DEFORM_MESH= YES. This above works regardless, which is handy for CHT
-  }// TODO: Verify that this is actually the same
-
-  coord_passive[0] = SU2_TYPE::GetValue(coord[0]);
-  coord_passive[1] = SU2_TYPE::GetValue(coord[1]);
-  coord_passive[2] = SU2_TYPE::GetValue(coord[2]);
-
-  return coord_passive;
-}
-
-vector<passivedouble> CDriver::TESTGetInitialMeshCoord(unsigned short iMarker, unsigned long iVertex) const {
-
-  vector<su2double> coord(3,0.0);
-  vector<passivedouble> coord_passive(3, 0.0);
-
-  auto iPoint = geometry_container[ZONE_0][INST_0][MESH_0]->vertex[iMarker][iVertex]->GetNode();
-  for (auto iDim = 0 ; iDim < nDim ; iDim++){
-    // preCICE
-   coord[iDim] = solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->GetMesh_Coord(iPoint,iDim);
-    // CSolver object only instantiates coordinates if DEFORM_MESH= YES. This above works regardless, which is handy for CHT
-  }// TODO: Verify that this is actually the same
+  }
 
   coord_passive[0] = SU2_TYPE::GetValue(coord[0]);
   coord_passive[1] = SU2_TYPE::GetValue(coord[1]);
@@ -637,48 +618,6 @@ void CDriver::SaveOldState() {
       preCICE_Volume_nM1(iPoint_Local) = geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetVolume_nM1(iPoint_Local);
     }
   }
-}
-
-//preCICE: Debug
-void CDriver::PrintDebugInfo() {
-
-  cout << "config_container[ZONE_0]->GetGrid_Movement(): " << config_container[ZONE_0]->GetGrid_Movement() << endl;
-  cout << "geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint(): " << geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint() << endl;
-  cout << "geometry_container[ZONE_0][INST_0][MESH_0]->GetGlobal_nPointDomain(): " << geometry_container[ZONE_0][INST_0][MESH_0]->GetGlobal_nPointDomain() << endl;
-  cout << "geometry_container[ZONE_0][INST_0][MESH_0]->GetnPointDomain(): " << geometry_container[ZONE_0][INST_0][MESH_0]->GetnPointDomain() << endl;
-  
-  
-  // Get the number of solution variables, points, and dimension
-  const unsigned short nVar = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetnVar();
-  const unsigned long nPoint = geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint();
-  const unsigned short nDim = geometry_container[ZONE_0][INST_0][MESH_0]->GetnDim();
-  
-  // Get if RANS
-  const bool rans = config_container[ZONE_0]->GetKind_Turb_Model() != TURB_MODEL::NONE;
-  const unsigned short TURB_nVar = (rans) ? solver_container[ZONE_0][INST_0][MESH_0][TURB_SOL]->GetnVar() : 0;
-
-  // Get if this is dynamic grid (for unsteady FSI problems)
-  const bool dynamic_grid = config_container[ZONE_0]->GetDynamic_Grid();
-
-  cout << "----------------------------------------------------------------------------" << endl;
-  cout << "RANK " << rank << endl;
-  cout << "nVar: " << nVar << endl;
-  cout << "nPoint: " << nPoint << endl;
-  cout << "nDim: " << nDim << endl;
-  cout << "RANS? " << rans << endl;
-  cout << "TURB_nVar: " << TURB_nVar << endl;
-  cout << "Dynamic Grid? " << dynamic_grid << endl;
-
-  for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++) {
-    for (unsigned short iVar = 0; iVar < nVar; iVar++) {
-      cout << "preCICE_Solution(" << iPoint << "," << iVar << "): " << preCICE_Solution(iPoint, iVar) << endl;
-    }
-  }
-  for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++)
-    for (unsigned short iVar = 0; iVar < nVar; iVar++)
-      cout << "solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->GetSolution(" << iPoint << "," << iVar << "): " << solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->GetSolution(iPoint, iVar) << endl;
-      
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////

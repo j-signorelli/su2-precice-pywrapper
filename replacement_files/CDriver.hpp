@@ -556,7 +556,7 @@ public:
    * \return x,y,z coordinates of the vertex.
    */
   vector<passivedouble> GetInitialMeshCoord(unsigned short iMarker, unsigned long iVertex) const;
-
+  
   /*!
    * \brief Get the temperature at a vertex on a specified marker.
    * \param[in] iMarker - Marker identifier.
