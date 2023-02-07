@@ -41,10 +41,10 @@ then
     BUILD_OPTIONS=$(cut -d ":" -f2 <<< "$BUILD_LINE")
     PYBUILD_OPTION="-Denable-pywrapper=true"
 
-    printf "Previous build options obtained\n"
+    printf "Previous build options obtained.\n"
     printf "To update the build and installation for the adapter, go to $SU2_HOME and run:\n\n\t\t./meson.py build --wipe$BUILD_OPTIONS"
     
-    if [[ '$BUILD_OPTIONS' != *'$PYBUILD_OPTION'* ]]
+    if [[ "$BUILD_OPTIONS" != *"$PYBUILD_OPTION"* ]]
     then
         printf " $PYBUILD_OPTION"
     fi
@@ -56,5 +56,7 @@ fi
 printf "\n\t\t./ninja -C build install\n\n"
 
 
-printf "Please ensure MPI is enabled\n"
+printf "Please ensure MPI is enabled.\n"
+printf "Note that you must have swig and mpi4py installed for the SU2 Python wrapper, see the SU2 installation instructions for further information.\n"
+printf "Also note that you must have the preCICE Python bindings set up as well, see the preCICE website for further information.\n"
 printf "SU2 adapter successfully installed over.\n"
