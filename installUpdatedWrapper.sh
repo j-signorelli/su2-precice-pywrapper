@@ -32,6 +32,29 @@ cp replacement_files/python_wrapper_structure.cpp $SU2_HOME/SU2_CFD/src  || { pr
 cp replacement_files/CDriver.hpp $SU2_HOME/SU2_CFD/include/drivers  || { printf >&2 "\nCannot copy CDriver.hpp over. Is variable SU2_HOME set correctly? Are you running the script from the correct directory?\nAborting.\n"; exit 1; }
 
 # Output to guide the user
-printf "\nPlease navigate to the SU2 home directory $SU2_HOME and run:\n"
+printf "\nPlease navigate to the SU2 home directory $SU2_HOME to re-configure and build SU2. Note that meson must be wiped for changes to take effect.\n\n"
 
-printf "Wrapper successfully copied over. Ideally required added functionalities are implemented in future version of SU2.\n"
+# Check if SU2 has been built before, if so:
+if [-f $SU2_HOME/build/meson-logs/meson-log.txt]
+then
+    BUILD_LINE=$(grep -P "Build Options: " $SU2_HOME/build/meson-logs/meson-log.txt)
+    BUILD_OPTIONS=$(cut -d ":" -f2 <<< "$BUILD_LINE")
+    PYBUILD_OPTION="-Denable-pywrapper=true"
+
+    printf "Previous build options obtained\n"
+    printf "To update the build and installation for the adapter, go to $SU2_HOME and run:\n\t\t./meson.py build --wipe$BUILD_OPTIONS"
+    
+    if [["$PYBUILD_OPTION" != *"$BUILD_OPTIONS"*]]
+    then
+        printf " $PYBUILD_OPTION\n"
+    fi
+else
+
+    printf "No previous build detected. To configure with the Python wrapper, navigate to $SU2_HOME and run as follows:\n\t\t./meson.py build -Denable-pywrapper=true [insert other build options here]\n"  
+fi
+
+printf "\t\t./ninja -C build install"
+
+
+printf "\nPlease ensure MPI is enabled\n"
+printf "SU2 adapter successfully installed over.\n"
