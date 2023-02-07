@@ -233,6 +233,25 @@ vector<passivedouble> CDriver::GetInitialMeshCoord(unsigned short iMarker, unsig
   return coord_passive;
 }
 
+vector<passivedouble> CDriver::TESTGetInitialMeshCoord(unsigned short iMarker, unsigned long iVertex) const {
+
+  vector<su2double> coord(3,0.0);
+  vector<passivedouble> coord_passive(3, 0.0);
+
+  auto iPoint = geometry_container[ZONE_0][INST_0][MESH_0]->vertex[iMarker][iVertex]->GetNode();
+  for (auto iDim = 0 ; iDim < nDim ; iDim++){
+    // preCICE
+   coord[iDim] = solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->GetNodes()->GetMesh_Coord(iPoint,iDim);
+    // CSolver object only instantiates coordinates if DEFORM_MESH= YES. This above works regardless, which is handy for CHT
+  }// TODO: Verify that this is actually the same
+
+  coord_passive[0] = SU2_TYPE::GetValue(coord[0]);
+  coord_passive[1] = SU2_TYPE::GetValue(coord[1]);
+  coord_passive[2] = SU2_TYPE::GetValue(coord[2]);
+
+  return coord_passive;
+}
+
 vector<passivedouble> CDriver::GetVertexNormal(unsigned short iMarker, unsigned long iVertex, bool unitNormal) const {
 
   su2double *Normal;
