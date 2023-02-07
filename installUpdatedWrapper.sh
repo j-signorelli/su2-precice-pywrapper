@@ -5,7 +5,7 @@
 # Copied from SU2 Adapter
 # SU2 version: 7.5.1 "Blackbird"
 
-# SU2 version for which this adapter was made
+# SU2 versions for which this adapter was made
 VERSIONS="7.5.1 \"Blackbird\"|7.5.0 \"Blackbird\""
 
 # Always run this script from current directory
@@ -32,7 +32,6 @@ cp replacement_files/python_wrapper_structure.cpp $SU2_HOME/SU2_CFD/src  || { pr
 cp replacement_files/CDriver.hpp $SU2_HOME/SU2_CFD/include/drivers  || { printf >&2 "\nCannot copy CDriver.hpp over. Is variable SU2_HOME set correctly? Are you running the script from the correct directory?\nAborting.\n"; exit 1; }
 
 # Output to guide the user
-printf "\nPlease navigate to the SU2 home directory $SU2_HOME and all that you have to do is very simply run:\n"
-printf "\n\t\t./ninja -C build install\n\n"
+printf "\nPlease navigate to the SU2 home directory $SU2_HOME and run:\n"
 
 printf "Wrapper successfully copied over. Ideally required added functionalities are implemented in future version of SU2.\n"
