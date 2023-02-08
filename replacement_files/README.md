@@ -33,6 +33,4 @@ There is no non-invasive way to write preCICE saved state restart files, and I/O
 
 
 
-After all variables are set, remaining communications/multigrid-interpolations were copied and pasted into appropriate functions.
-
-As is done in the SU2 source code, saved state member variables are resized using nPoint.
+After all variables are set, remaining communications/multigrid-interpolations/calculations were copied and pasted into appropriate functions.
