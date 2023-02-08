@@ -48,7 +48,7 @@ To utilize the default FSI and CHT scripts anywhere, add to your ~/.bashrc:
         alias SU2_preCICE_FSI="/path/to/adapter/run/SU2_preCICE_FSI.py --parallel"
         alias SU2_preCICE_CHT="/path/to/adapter/run/SU2_preCICE_CHT.py --parallel"
 
-Note that if you do decide to build SU2 in serial, you must remove the --parallel flags above in the aliases.
+Note that if you do decide to build SU2 in serial, you must remove the `--parallel` flags above in the aliases.
 
 ## Running Simulations
 After successfully installing the adapted SU2, the default FSI/CHT scripts may be utilized. Note that these scripts currently are designed for a single coupling mesh, called *interface*. However it is extremely easy to update these scripts to handle a different BC name and/or multiple interfaces. They are provided simply for their ease of use.
