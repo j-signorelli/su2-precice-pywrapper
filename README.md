@@ -115,4 +115,4 @@ The participant name, config file, and mesh name can be changed using flags in t
 ### Running in Parallel
 The Python scripts can very easily be run in parallel by just pre-pending the Python script call like:
 
-        mpirun -n 8 SU2_preCICE_CHT -f SU2_config_file.cfg
+        mpirun -n 8 python3 SU2_preCICE_CHT.py -f SU2_config_file.cfg
