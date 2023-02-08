@@ -62,5 +62,5 @@ printf "Also note that you must have the preCICE Python bindings set up as well.
 printf "SU2 adapter successfully installed. To access the default/template FSI + CHT Python scripts, add to your ~/.bashrc:\n\n"
 
 SCRIPT_DIR=$(pwd)
-printf "\t\talias SU2_preCICE_FSI=$SCRIPT_DIR/run/SU2_preCICE_FSI.py --parallel\n"
-printf "\t\talias SU2_preCICE_CHT=$SCRIPT_DIR/run/SU2_preCICE_CHT.py --parallel"
+printf "\t\talias SU2_preCICE_FSI=\"$SCRIPT_DIR/run/SU2_preCICE_FSI.py --parallel\"\n"
+printf "\t\talias SU2_preCICE_CHT=\"$SCRIPT_DIR/run/SU2_preCICE_CHT.py --parallel\"\n\n"
