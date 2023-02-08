@@ -60,3 +60,7 @@ printf "Please ensure MPI is enabled.\n"
 printf "Note that you must have swig and mpi4py installed for the SU2 Python wrapper, see the SU2 installation instructions for further information.\n"
 printf "Also note that you must have the preCICE Python bindings set up as well, see the preCICE website for further information.\n"
 printf "SU2 adapter successfully installed. To access the default/template FSI + CHT Python scripts, add to your ~/.bashrc:\n\n"
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+printf "\t\talias SU2_preCICE_CHT=$SCRIPT_DIR/run/SU2_preCICE_CHT.py\n"
+printf "\t\talias SU2_preCICE_FSI=$SCRIPT_DIR/run/SU2_preCICE_FSI.py\n"
