@@ -64,7 +64,3 @@ printf "SU2 adapter successfully installed. To access the default/template FSI +
 SCRIPT_DIR=$(pwd)
 printf "\t\talias SU2_preCICE_FSI=$SCRIPT_DIR/run/SU2_preCICE_FSI.py --parallel\n"
 printf "\t\talias SU2_preCICE_CHT=$SCRIPT_DIR/run/SU2_preCICE_CHT.py --parallel"
-
-# Set run permissions
-chmod u+x run/SU2_preCICE_CHT.py
-chmod u+x run/SU2_preCICE_FSI.py
