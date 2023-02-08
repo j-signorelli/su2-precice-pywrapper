@@ -45,10 +45,7 @@ After copying the adapter files to the correct locations within the SU2 package,
 
 To utilize the default FSI and CHT scripts anywhere, add to your ~/.bashrc:
 
-        alias SU2_preCICE_FSI="/path/to/adapter/run/SU2_preCICE_FSI.py --parallel"
-        alias SU2_preCICE_CHT="/path/to/adapter/run/SU2_preCICE_CHT.py --parallel"
-
-Note that if you do decide to build SU2 in serial, you must remove the `--parallel` flags above in the aliases.
+        export PATH="/path/to/adapter/run:$PATH
 
 ## Running Simulations
 After successfully installing the adapted SU2, the default FSI/CHT scripts may be utilized. Note that these scripts currently are designed for a single coupling mesh, called *interface*. However it is extremely easy to update these scripts to handle a different BC name and/or multiple interfaces. They are provided simply for their ease of use.
@@ -73,11 +70,13 @@ By default in the *SU2_preCICE_FSI.py* script, the following settings are automa
 
 To run with these settings:
 
-        SU2_preCICE_FSI.py -f SU2_config_file.cfg
+        SU2_preCICE_FSI.py -f SU2_config_file.cfg --parallel
+
+The `--parallel` flag must **always** be used when SU2 is built in parallel, even if running on a single process. If you do not build SU2 with MPI, do not include it.
 
 The read/write data are hardcoded, but the participant name, config file, and mesh name can be changed using flags in the call to the Python file. In general, to run an FSI case:
 
-        SU2_preCICE_FSI.py -f SU2_config_file.cfg -p participant_name -c precice_config_file -m precice_mesh_name
+        SU2_preCICE_FSI.py -f SU2_config_file.cfg -p participant_name -c precice_config_file -m precice_mesh_name --parallel
 
 ### Conjugate Heat Transfer
 #### SU2 Config File
@@ -105,17 +104,19 @@ By default in the *SU2_preCICE_CHT.py* script, the following settings are automa
 
 To run with these settings:
 
-        SU2_preCICE_CHT.py -f SU2_config_file.cfg
+        SU2_preCICE_CHT.py -f SU2_config_file.cfg --parallel
+
+The `--parallel` flag must **always** be used when SU2 is built in parallel, even if running on a single process. If you do not build SU2 with MPI, do not include it.
 
 The read/write data for CHT can be reversed if the preCICE config file specifies for the fluid to read heat flux and write temperature. This can easily be accomplished with the `-r` flag:
 
-        SU2_preCICE_CHT.py -f SU2_config_file.cfg -r
+        SU2_preCICE_CHT.py -f SU2_config_file.cfg -r --parallel
 
 The participant name, config file, and mesh name can be changed using flags in the call to the Python file. In general, to run a CHT case:
 
-        SU2_preCICE_CHT.py -f SU2_config_file.cfg -p participant_name -c precice_config_file -m precice_mesh_name
+        SU2_preCICE_CHT.py -f SU2_config_file.cfg -p participant_name -c precice_config_file -m precice_mesh_name --parallel
 
 ### Running in Parallel
 The Python scripts can very easily be run in parallel by just pre-pending the Python script call like:
 
-        mpirun -n 8 python3 SU2_preCICE_CHT.py -f SU2_config_file.cfg
+        mpirun -n 8 python3 SU2_preCICE_CHT.py -f SU2_config_file.cfg --parallel
