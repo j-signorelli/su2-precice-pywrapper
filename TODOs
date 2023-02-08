@@ -1,4 +1,5 @@
-- Implement default FSI/CHT scripts.
-- Add to installUpdatedWrapper instructions to set PATH to those default scripts
-- Implement ability to set flag to reverse heat flux/temp reading/writing in CHT script
-- Describe in detail in the readme how to use those scripts when not using default options (describe first the default options)
+- Implement default FSI/CHT scripts - X
+- Add to installUpdatedWrapper instructions to set PATH to those default scripts - X
+- Implement ability to set flag to reverse heat flux/temp reading/writing in CHT script - X
+- Describe in detail in the readme how to use those scripts when not using default options (describe first the default options) - X
+- Test everything once more

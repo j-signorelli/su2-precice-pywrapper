@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python
 
 ## File edited to work coupled with preCICE - Joseph Signorelli
 
