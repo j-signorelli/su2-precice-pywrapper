@@ -532,10 +532,6 @@ public:
    * \brief Save old state, for preCICE implicit coupling
   */
   void SaveOldState();
-  /*!
-   * \brief Debug info, for preCICE implicit coupling
-  */
-  void PrintDebugInfo();
 
   /*!
    * \brief Get the name of the output file for the surface.

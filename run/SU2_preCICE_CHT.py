@@ -157,8 +157,8 @@ def main():
     SetFxn = SU2Driver.SetVertexNormalHeatFlux
     GetInitialFxn = SU2Driver.GetVertexNormalHeatFlux
 
-  read_data_id = interface.get_data_id(options.precice_read, mesh_id)
-  write_data_id = interface.get_data_id(options.precice_write, mesh_id)
+  read_data_id = interface.get_data_id(precice_read, mesh_id)
+  write_data_id = interface.get_data_id(precice_write, mesh_id)
 
   # Instantiate arrays to hold temperature + heat flux info
   read_data = numpy.zeros(nVertex_CHTMarker_PHYS)
