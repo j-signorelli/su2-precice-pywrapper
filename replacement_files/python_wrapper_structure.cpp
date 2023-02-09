@@ -464,6 +464,11 @@ void CDriver::FinalizeMESH_SOL() {
   const unsigned short nDim = geometry_container[ZONE_0][INST_0][MESH_0]->GetnDim();
   
 
+  //TODO: VERIFY THIS COMMUNICATE COORDINATES BELOW -- THIS *COULD*??? BE IT???? WE DON"T KNOW!!
+  /*--- Communicate the loaded coordinates ---*/
+  geometry_container[ZONE_0][INST_0][MESH_0]->InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], COORDINATES);
+  geometry_container[ZONE_0][INST_0][MESH_0]->CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], COORDINATES);
+
   /*--- Communicate the loaded displacements. ---*/
   solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION);
   solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION);
