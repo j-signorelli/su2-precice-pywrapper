@@ -362,6 +362,9 @@ void CDriver::ReloadOldState() {
   }  // end safe global access, pre and postprocessing are thread-safe.
   END_SU2_OMP_SAFE_GLOBAL_ACCESS
 
+  // TODO: necessary?
+  SU2_MPI::Barrier(SU2_MPI::GetComm());
+
   FinalizeFLOW_SOL();
   if (rans) FinalizeTURB_SOL();
   if (dynamic_grid) FinalizeMESH_SOL();
@@ -400,6 +403,11 @@ void CDriver::FinalizeFLOW_SOL() {
   solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION);
   solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION);
 
+  solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION_TIME_N);
+  solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION_TIME_N);
+
+  solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION_TIME_N1);
+  solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION_TIME_N1);
 
   /*--- For turbulent/species simulations the flow preprocessing is done by the turbulence/species solver
    *    after it loads its variables (they are needed to compute flow primitives). In case turbulence and species, the
@@ -463,12 +471,6 @@ void CDriver::FinalizeMESH_SOL() {
   const unsigned long nPoint = geometry_container[ZONE_0][INST_0][MESH_0]->GetnPoint();
   const unsigned short nDim = geometry_container[ZONE_0][INST_0][MESH_0]->GetnDim();
   
-
-  //TODO: VERIFY THIS COMMUNICATE COORDINATES BELOW -- THIS *COULD*??? BE IT???? WE DON"T KNOW!!
-  /*--- Communicate the loaded coordinates ---*/
-  geometry_container[ZONE_0][INST_0][MESH_0]->InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], COORDINATES);
-  geometry_container[ZONE_0][INST_0][MESH_0]->CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], COORDINATES);
-
   /*--- Communicate the loaded displacements. ---*/
   solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->InitiateComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION);
   solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL]->CompleteComms(geometry_container[ZONE_0][INST_0][MESH_0], config_container[ZONE_0], SOLUTION);
