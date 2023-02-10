@@ -34,3 +34,6 @@ There is no non-invasive way to write preCICE saved state restart files, and I/O
 
 
 After all variables are set, remaining communications/multigrid-interpolations/calculations were copied and pasted into appropriate functions.
+
+
+Method of data saving was verified by outputting RESTART_ASCII files after saving a state and after reloading a state, and both successfully are identical when this is tested.

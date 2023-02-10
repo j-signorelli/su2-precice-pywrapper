@@ -205,7 +205,14 @@ def main():
         deltaT = min(precice_deltaT, deltaT)
         SU2Driver.SetUnsteady_TimeStep(deltaT)
 
-        # Time iteration preprocessing
+        # Add barrier to ensure that all mesh displacements have been set
+        if options.with_MPI:
+            comm.Barrier()
+
+        # Communicate mesh displacements prior to mesh deformation
+        SU2Driver.CommunicateMeshDisplacement()
+        
+        # Time iteration preprocessing (mesh is deformed here)
         SU2Driver.Preprocess(TimeIter)
 
         # Run one time iteration (e.g. dual-time)
