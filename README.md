@@ -120,3 +120,5 @@ The participant name, config file, and mesh name can be changed using flags in t
 The Python scripts can very easily be run in parallel by just pre-pending the Python script call like:
 
         mpirun -n 8 python3 SU2_preCICE_CHT.py -f SU2_config_file.cfg --parallel
+
+**IMPORTANT NOTE**: As of now, FSI does not work in parallel. This appears to potentially be an issue in SU2 - see the ongoing discussion [here](https://github.com/su2code/SU2/discussions/1931).
