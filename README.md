@@ -68,6 +68,8 @@ By default in the *SU2_preCICE_FSI.py* script, the following settings are automa
 - preCICE Read Data: *Displacements*
 - preCICE Write Data: *Forces*
 
+and a fluid domain dimension of *3* is presumed.
+
 To run with these settings:
 
         SU2_preCICE_FSI.py -f SU2_config_file.cfg --parallel
@@ -76,7 +78,7 @@ The `--parallel` flag must **always** be used when SU2 is built in parallel, eve
 
 The read/write data are hardcoded, but the participant name, config file, and mesh name can be changed using flags in the call to the Python file. In general, to run an FSI case:
 
-        SU2_preCICE_FSI.py -f SU2_config_file.cfg -p participant_name -c precice_config_file -m precice_mesh_name --parallel
+        SU2_preCICE_FSI.py -f SU2_config_file.cfg -p participant_name -c precice_config_file -m precice_mesh_name -d 2 --parallel
 
 ### Conjugate Heat Transfer
 #### SU2 Config File
@@ -102,6 +104,8 @@ By default in the *SU2_preCICE_CHT.py* script, the following settings are automa
 - preCICE Read Data: *Temperature*
 - preCICE Write Data: *Heat-Flux*
 
+and a fluid domain dimension of *3* is presumed.
+
 To run with these settings:
 
         SU2_preCICE_CHT.py -f SU2_config_file.cfg --parallel
@@ -114,7 +118,7 @@ The read/write data for CHT can be reversed if the preCICE config file specifies
 
 The participant name, config file, and mesh name can be changed using flags in the call to the Python file. In general, to run a CHT case:
 
-        SU2_preCICE_CHT.py -f SU2_config_file.cfg -p participant_name -c precice_config_file -m precice_mesh_name --parallel
+        SU2_preCICE_CHT.py -f SU2_config_file.cfg -p participant_name -c precice_config_file -m precice_mesh_name -d 2 --parallel
 
 ### Running in Parallel
 The Python scripts can very easily be run in parallel by just pre-pending the Python script call like:
