@@ -564,6 +564,14 @@ public:
   passivedouble GetVertexTemperature(unsigned short iMarker, unsigned long iVertex) const;
 
   /*!
+   * \brief Get the pressure at a vertex on a specified marker.
+   * \param[in] iMarker - Marker identifier.
+   * \param[in] iVertex - Vertex identifier.
+   * \return Temperature of the vertex.
+   */
+  passivedouble GetVertexPressure(unsigned short iMarker, unsigned long iVertex) const;
+
+  /*!
    * \brief Set the temperature of a vertex on a specified marker.
    * \param[in] iMarker - Marker identifier.
    * \param[in] iVertex - Vertex identifier.
