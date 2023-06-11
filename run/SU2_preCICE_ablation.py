@@ -221,10 +221,10 @@ def main():
     # Get read and write data IDs
     # By default:
     precice_read = "Displacement"
-    #precice_write = "Force"
+    precice_write = "Pressure"
     read_data_id = interface.get_data_id(precice_read, mesh_id)
     read_data_id2 = interface.get_data_id(precice_read, mesh_id2)
-    #write_data_id = interface.get_data_id(precice_write, mesh_id)
+    write_data_id = interface.get_data_id(precice_write, mesh_id)
     
     #add CHT part######################################
     precice_read_CHT = "Temperature"
@@ -239,7 +239,7 @@ def main():
     # Instantiate arrays to hold displacements + forces info
     displacements = numpy.zeros((nVertex_MovingMarker_PHYS,options.nDim))
     displacements2 = numpy.zeros((nVertex_MovingMarker_PHYS2,options.nDim))
-    #forces = numpy.zeros((nVertex_MovingMarker_PHYS,options.nDim))
+    pressure = numpy.zeros((nVertex_MovingMarker_PHYS))
     read_data = numpy.zeros(nVertex_CHTMarker_PHYS)
     write_data = numpy.zeros(nVertex_CHTMarker_PHYS)
 
@@ -254,13 +254,13 @@ def main():
 
     # Set up initial data for preCICE
     if (interface.is_action_required(precice.action_write_initial_data())):
-        #for i, iVertex in enumerate(iVertices_MovingMarker_PHYS):
-        #    forces[i] = SU2Driver.GetFlowLoad(MovingMarkerID, iVertex)[:-1]
+        for i, iVertex in enumerate(iVertices_MovingMarker_PHYS):
+            pressure[i] = SU2Driver.GetVertexPressure(MovingMarkerID, iVertex)
             
         for i, iVertex in enumerate(iVertices_CHTMarker_PHYS):
           write_data[i] = GetInitialFxn(CHTMarkerID, iVertex)
 
-        #interface.write_block_vector_data(write_data_id, vertex_ids, forces)
+        interface.write_block_scalar_data(write_data_id, vertex_ids, pressure)
         interface.write_block_scalar_data(write_data_id_CHT, vertex_ids, write_data)
         interface.mark_action_fulfilled(precice.action_write_initial_data())
 
@@ -342,12 +342,12 @@ def main():
 
         if (interface.is_write_data_required(deltaT)):
             # Loop over the vertices
-            #for i, iVertex in enumerate(iVertices_MovingMarker_PHYS):
-            #    # Get forces at each vertex
-            #    forces[i] = SU2Driver.GetFlowLoad(MovingMarkerID, iVertex)[:-1]
+            for i, iVertex in enumerate(iVertices_MovingMarker_PHYS):
+                # Get forces at each vertex
+                pressure[i] = SU2Driver.GetVertexPressure(MovingMarkerID, iVertex)
 
             # Write data to preCICE
-            #interface.write_block_vector_data(write_data_id, vertex_ids, forces)
+            interface.write_block_scalar_data(write_data_id, vertex_ids, pressure)
             
             # Loop over the vertices
             for i, iVertex in enumerate(iVertices_CHTMarker_PHYS):
