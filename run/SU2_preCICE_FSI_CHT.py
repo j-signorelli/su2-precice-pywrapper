@@ -54,7 +54,8 @@ def main():
     parser.add_option("-p", "--precice-participant", dest="precice_name", help="Specify preCICE participant name", default="Fluid" )
     parser.add_option("-c", "--precice-config", dest="precice_config", help="Specify preCICE config file", default="../precice-config.xml")
     parser.add_option("-m", "--precice-mesh", dest="precice_mesh", help="Specify the preCICE mesh name", default="Fluid-Mesh")
-
+    parser.add_option("-r", "--precice-reverse", action="store_true", dest="precice_reverse", help="Include flag to have SU2 write temperature, read heat flux", default=False)
+  
     # Dimension
     parser.add_option("-d", "--dimension", dest="nDim", help="Dimension of fluid domain", type="int", default=3)
   
@@ -94,71 +95,40 @@ def main():
         print("SU2 and preCICE dimensions are not the same! Exiting")
         return
     
-    #Setup moving mesh
+    #Setup FSI-CHT interface
     ################################################################################
-    MovingMarkerID = None
-    MovingMarker = 'interface'       #specified by the user
+    FSICHTMarkerID = None
+    FSICHTMarker = 'interface'       #specified by the user
 
     # Get all the tags with the moving option
     MovingMarkerList =  SU2Driver.GetAllDeformMeshMarkersTag()
-
-    # Get all the markers defined on this rank and their associated indices.
-    allMarkerIDs = SU2Driver.GetAllBoundaryMarkers()
-
-    # Check if the specified marker has a moving option and if it exists on this rank.
-    if MovingMarker in MovingMarkerList and MovingMarker in allMarkerIDs.keys():
-        MovingMarkerID = allMarkerIDs[MovingMarker]
-
-    # Number of vertices on the specified marker (per rank)
-    nVertex_MovingMarker = 0         #total number of vertices (physical + halo)
-    nVertex_MovingMarker_HALO = 0    #number of halo vertices
-    nVertex_MovingMarker_PHYS = 0    #number of physical vertices
-    iVertices_MovingMarker_PHYS = [] # indices of vertices this rank is working on
-    # Datatypes must be primitive as input to SU2 wrapper code, not numpy.int8, numpy.int64, etc.. So a list is used
-    
-    if MovingMarkerID != None:
-        nVertex_MovingMarker = SU2Driver.GetNumberVertices(MovingMarkerID)
-        nVertex_MovingMarker_HALO = SU2Driver.GetNumberHaloVertices(MovingMarkerID)
-        nVertex_MovingMarker_PHYS = nVertex_MovingMarker - nVertex_MovingMarker_HALO
-        
-        # Obtain indices of all vertices that are being worked on on this rank
-        for iVertex in range(nVertex_MovingMarker):
-            if not SU2Driver.IsAHaloNode(MovingMarkerID, iVertex):
-                iVertices_MovingMarker_PHYS.append(int(iVertex))
-    ################################################################################
-    
-    #Setup CHT
-    ################################################################################
-    CHTMarkerID = None
-    CHTMarker = 'interface' # Name of CHT marker to couple
 
     # Get all the tags with the CHT option
     CHTMarkerList =  SU2Driver.GetAllCHTMarkersTag()
 
     # Get all the markers defined on this rank and their associated indices.
-    allMarkerIDs = SU2Driver.GetAllBoundaryMarkers() # Returns all markers defined on this rank
+    allMarkerIDs = SU2Driver.GetAllBoundaryMarkers()
 
-    #Check if the specified marker has a CHT option and if it exists on this rank.
-    if CHTMarker in CHTMarkerList and CHTMarker in allMarkerIDs.keys():
-      CHTMarkerID = allMarkerIDs[CHTMarker] # So: if CHTMarkerID != None, then it exists on this rank
-    
+    # Check if the specified marker has a moving option and CHT option and if it exists on this rank.
+    if FSICHTMarker in MovingMarkerList and FSICHTMarker in CHTMarkerList and FSICHTMarker in allMarkerIDs.keys():
+        FSICHTMarkerID = allMarkerIDs[FSICHTMarker]
+
     # Number of vertices on the specified marker (per rank)
-    nVertex_CHTMarker = 0         #total number of vertices (physical + halo) on this rank
-    nVertex_CHTMarker_HALO = 0    #number of halo vertices
-    nVertex_CHTMarker_PHYS = 0    #number of physical vertices
-    iVertices_CHTMarker_PHYS = [] #indices of vertices this rank is working on
-    # Note: Datatypes must be primitive as input to SU2 wrapper code, not numpy.int8, numpy.int64, etc.. So a list is used
-
-    # If the CHT marker is defined on this rank:
-    if CHTMarkerID != None:
-      nVertex_CHTMarker = SU2Driver.GetNumberVertices(CHTMarkerID) #Total number of vertices on the marker
-      nVertex_CHTMarker_HALO = SU2Driver.GetNumberHaloVertices(CHTMarkerID)
-      nVertex_CHTMarker_PHYS = nVertex_CHTMarker - nVertex_CHTMarker_HALO
-
-      # Obtain indices of all vertices that are being worked on on this rank
-      for iVertex in range(nVertex_CHTMarker):
-        if not SU2Driver.IsAHaloNode(CHTMarkerID, iVertex):
-          iVertices_CHTMarker_PHYS.append(int(iVertex))
+    nVertex_FSICHTMarker = 0         #total number of vertices (physical + halo)
+    nVertex_FSICHTMarker_HALO = 0    #number of halo vertices
+    nVertex_FSICHTMarker_PHYS = 0    #number of physical vertices
+    iVertices_FSICHTMarker_PHYS = [] # indices of vertices this rank is working on
+    # Datatypes must be primitive as input to SU2 wrapper code, not numpy.int8, numpy.int64, etc.. So a list is used
+    
+    if FSICHTMarkerID != None:
+        nVertex_FSICHTMarker = SU2Driver.GetNumberVertices(FSICHTMarkerID)
+        nVertex_FSICHTMarker_HALO = SU2Driver.GetNumberHaloVertices(FSICHTMarkerID)
+        nVertex_FSICHTMarker_PHYS = nVertex_FSICHTMarker - nVertex_FSICHTMarker_HALO
+        
+        # Obtain indices of all vertices that are being worked on on this rank
+        for iVertex in range(nVertex_FSICHTMarker):
+            if not SU2Driver.IsAHaloNode(FSICHTMarkerID, iVertex):
+                iVertices_FSICHTMarker_PHYS.append(int(iVertex))
     ################################################################################
     
     # Get preCICE mesh ID
@@ -169,38 +139,44 @@ def main():
         return
     
     # Get coords of vertices
-    coords = numpy.zeros((nVertex_MovingMarker_PHYS, options.nDim))
-    for i, iVertex in enumerate(iVertices_MovingMarker_PHYS):
-        coord_passive = SU2Driver.GetInitialMeshCoord(MovingMarkerID, iVertex)
+    coords = numpy.zeros((nVertex_FSICHTMarker_PHYS, options.nDim))
+    for i, iVertex in enumerate(iVertices_FSICHTMarker_PHYS):
+        coord_passive = SU2Driver.GetInitialMeshCoord(FSICHTMarkerID, iVertex)
         for iDim in range(options.nDim):
             coords[i, iDim] = coord_passive[iDim]
 
     # Set mesh vertices in preCICE:
     vertex_ids = interface.set_mesh_vertices(mesh_id, coords)
 
-    # Get read and write data IDs
+    # Get read and write data IDs for FSI
     # By default:
-    precice_read = "Displacement"
-    #precice_write = "Force"
-    read_data_id = interface.get_data_id(precice_read, mesh_id)
-    #write_data_id = interface.get_data_id(precice_write, mesh_id)
+    precice_read_FSI = "Displacement"
+    precice_write_FSI = "Force"
+    read_data_id_FSI = interface.get_data_id(precice_read_FSI, mesh_id)
+    write_data_id_FSI = interface.get_data_id(precice_write_FSI, mesh_id)
     
-    #add CHT part######################################
+    # Get read and write data IDs for CHT
     precice_read_CHT = "Temperature"
     precice_write_CHT = "Heat-Flux"
     GetFxn = SU2Driver.GetVertexNormalHeatFlux
     SetFxn = SU2Driver.SetVertexTemperature
     GetInitialFxn = SU2Driver.GetVertexTemperature
+    # Reverse coupling data read/write if -r flag included
+    if options.precice_reverse:
+        precice_read_CHT = "Heat-Flux"
+        precice_write_CHT = "Temperature"
+        GetFxn = SU2Driver.GetVertexTemperature
+        SetFxn = SU2Driver.SetVertexNormalHeatFlux
+        GetInitialFxn = SU2Driver.GetVertexNormalHeatFlux
     read_data_id_CHT = interface.get_data_id(precice_read_CHT, mesh_id)
     write_data_id_CHT = interface.get_data_id(precice_write_CHT, mesh_id)
-    ###################################################
 
-    # Instantiate arrays to hold displacements + forces info
-    displacements = numpy.zeros((nVertex_MovingMarker_PHYS,options.nDim))
-    #forces = numpy.zeros((nVertex_MovingMarker_PHYS,options.nDim))
-    read_data = numpy.zeros(nVertex_CHTMarker_PHYS)
-    write_data = numpy.zeros(nVertex_CHTMarker_PHYS)
-
+    # Instantiate arrays to hold displacements + forces + heat flux + temperature info
+    read_data_FSI  = numpy.zeros((nVertex_FSICHTMarker_PHYS,options.nDim))
+    write_data_FSI = numpy.zeros((nVertex_FSICHTMarker_PHYS,options.nDim))
+    read_data_FSI  = numpy.zeros(nVertex_FSICHTMarker_PHYS)
+    write_data_CHT  = numpy.zeros(nVertex_FSICHTMarker_PHYS)
+    
     # Retrieve some control parameters from the driver
     deltaT = SU2Driver.GetUnsteady_TimeStep()
     TimeIter = SU2Driver.GetTime_Iter()
@@ -212,14 +188,12 @@ def main():
 
     # Set up initial data for preCICE
     if (interface.is_action_required(precice.action_write_initial_data())):
-        #for i, iVertex in enumerate(iVertices_MovingMarker_PHYS):
-        #    forces[i] = SU2Driver.GetFlowLoad(MovingMarkerID, iVertex)[:-1]
-            
-        for i, iVertex in enumerate(iVertices_CHTMarker_PHYS):
-          write_data[i] = GetInitialFxn(CHTMarkerID, iVertex)
+        for i, iVertex in enumerate(iVertices_FSICHTMarker_PHYS):
+          write_data_FSI[i] = SU2Driver.GetFlowLoad(FSICHTMarkerID, iVertex)[:-1]
+          write_data_CHT[i] = GetInitialFxn(FSICHTMarkerID, iVertex)
 
-        #interface.write_block_vector_data(write_data_id, vertex_ids, forces)
-        interface.write_block_scalar_data(write_data_id_CHT, vertex_ids, write_data)
+        interface.write_block_vector_data(write_data_id_FSI, vertex_ids, write_data_FSI)
+        interface.write_block_scalar_data(write_data_id_CHT, vertex_ids, write_data_CHT)
         interface.mark_action_fulfilled(precice.action_write_initial_data())
 
     interface.initialize_data()
@@ -248,20 +222,18 @@ def main():
 
         if (interface.is_read_data_available()):
             # Retreive data from preCICE
-            displacements = interface.read_block_vector_data(read_data_id, vertex_ids)
-            read_data = interface.read_block_scalar_data(read_data_id_CHT, vertex_ids) 
+            read_data_FSI = interface.read_block_vector_data(read_data_id_FSI, vertex_ids)
+            read_data_CHT = interface.read_block_scalar_data(read_data_id_CHT, vertex_ids) 
             
-            # Set the updated displacements
-            for i, iVertex in enumerate(iVertices_MovingMarker_PHYS):
-                DisplX = displacements[i][0]
-                DisplY = displacements[i][1]
-                DisplZ = 0 if options.nDim == 2 else displacements[i][2]
+            # Set the updated displacements + CHT BCs
+            for i, iVertex in enumerate(iVertices_FSICHTMarker_PHYS):
+                DisplX = read_data_FSI[i][0]
+                DisplY = read_data_FSI[i][1]
+                DisplZ = 0 if options.nDim == 2 else read_data_FSI[i][2]
 
-                SU2Driver.SetMeshDisplacement(MovingMarkerID, iVertex, DisplX, DisplY, DisplZ)
+                SU2Driver.SetMeshDisplacement(FSICHTMarkerID, iVertex, DisplX, DisplY, DisplZ)
             
-            # Set the updated values
-            for i, iVertex in enumerate(iVertices_CHTMarker_PHYS):
-                SetFxn(CHTMarkerID, iVertex, read_data[i])
+                SetFxn(FSICHTMarkerID, iVertex, read_data_CHT[i])
 
             # Tell the SU2 drive to update the boundary conditions
             SU2Driver.BoundaryConditionsUpdate()
@@ -292,20 +264,16 @@ def main():
 
         if (interface.is_write_data_required(deltaT)):
             # Loop over the vertices
-            #for i, iVertex in enumerate(iVertices_MovingMarker_PHYS):
-            #    # Get forces at each vertex
-            #    forces[i] = SU2Driver.GetFlowLoad(MovingMarkerID, iVertex)[:-1]
-
+            for i, iVertex in enumerate(iVertices_FSICHTMarker_PHYS):
+                # Get forces at each vertex
+                write_data_FSI[i] = SU2Driver.GetFlowLoad(FSICHTMarkerID, iVertex)[:-1]
+                
+                # Get heat fluxes at each vertex
+                write_data_CHT[i] = GetFxn(CHTMarkerID, iVertex)
+                
             # Write data to preCICE
-            #interface.write_block_vector_data(write_data_id, vertex_ids, forces)
-            
-            # Loop over the vertices
-            for i, iVertex in enumerate(iVertices_CHTMarker_PHYS):
-              # Get heat fluxes at each vertex
-              write_data[i] = GetFxn(CHTMarkerID, iVertex)
-              
-            # Write data to preCICE
-            interface.write_block_scalar_data(write_data_id_CHT, vertex_ids, write_data)
+            interface.write_block_vector_data(write_data_id, vertex_ids, write_data_FSI)
+            interface.write_block_scalar_data(write_data_id_CHT, vertex_ids, write_data_CHT)
 
         # Advance preCICE
         precice_deltaT = interface.advance(deltaT)
