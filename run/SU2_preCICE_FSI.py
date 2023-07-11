@@ -226,7 +226,7 @@ def main():
         # Update the solver for the next time iteration
         SU2Driver.Update()
 
-        # Monitor the solver and output solution to file if required
+        # Monitor the solver
         stopCalc = SU2Driver.Monitor(TimeIter)
 
 
