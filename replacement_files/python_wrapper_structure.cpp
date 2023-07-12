@@ -47,7 +47,41 @@ void CDriver::PythonInterface_Preprocessing(CConfig **config, CGeometry ****geom
       if (rank == MASTER_NODE) cout << "Setting customized boundary conditions for zone " << iZone << endl;
       for (iMesh = 0; iMesh <= config[iZone]->GetnMGLevels(); iMesh++) {
         geometry[iZone][INST_0][iMesh]->SetCustomBoundary(config[iZone]);
+        // preCICE: Update input file initial custom boundary temperature/HF to be nondimensional
+        //          ^Fixes current bug in SU2
+        //------------------------------------------------------------------------------------------------
+        // Basically just copied + pasted (terrible coding but as a quick/least invasive fix) CGeometry::SetCustomBoundary
+        unsigned short iMarker;
+        unsigned long iVertex;
+        string Marker_Tag;
+
+        for(iMarker=0; iMarker < geometry[iZone][INST_0][iMesh]->GetnMarker(); iMarker++){
+          Marker_Tag = config[iZone]->GetMarker_All_TagBound(iMarker);
+          if(config[iZone]->GetMarker_All_PyCustom(iMarker)){
+            switch(config[iZone]->GetMarker_All_KindBC(iMarker)){
+              case HEAT_FLUX:
+                for(iVertex=0; iVertex < geometry[iZone][INST_0][iMesh]->GetnVertex(iMarker); iVertex++){
+                  geometry[iZone][INST_0][iMesh]->SetCustomBoundaryHeatFlux(iMarker, iVertex, config[iZone]->GetWall_HeatFlux(Marker_Tag)/config[iZone]->GetHeat_Flux_Ref());
+                }
+                break;
+              case ISOTHERMAL:
+                for(iVertex=0; iVertex < geometry[iZone][INST_0][iMesh]->GetnVertex(iMarker); iVertex++){
+                  geometry[iZone][INST_0][iMesh]->SetCustomBoundaryTemperature(iMarker, iVertex, config[iZone]->GetIsothermal_Temperature(Marker_Tag)/config[iZone]->GetTemperature_Ref());
+                }
+                break;
+              case INLET_FLOW:
+                // This case is handled in the solver class.
+                break;
+              default:
+                cout << "WARNING: Marker " << Marker_Tag << " is not customizable. Using default behavior." << endl;
+                break;
+            }
+          }
+        }
+          //-------------------------------------------------------------------------------------------------
       }
+
+
       geometry[iZone][INST_0][MESH_0]->UpdateCustomBoundaryConditions(geometry[iZone][INST_0], config[iZone]);
 
       if ((config[iZone]->GetKind_Solver() == MAIN_SOLVER::EULER) ||
@@ -643,7 +677,7 @@ passivedouble CDriver::GetVertexTemperature(unsigned short iMarker, unsigned lon
 void CDriver::SetVertexTemperature(unsigned short iMarker, unsigned long iVertex, passivedouble val_WallTemp){
 
   // preCICE: non-dimensionalize before setting
-  geometry_container[ZONE_0][INST_0][MESH_0]->SetCustomBoundaryTemperature(iMarker, iVertex, val_WallTemp * config_container[ZONE_0]->GetTemperature_Ref());
+  geometry_container[ZONE_0][INST_0][MESH_0]->SetCustomBoundaryTemperature(iMarker, iVertex, val_WallTemp / config_container[ZONE_0]->GetTemperature_Ref());
 }
 
 vector<passivedouble> CDriver::GetVertexHeatFluxes(unsigned short iMarker, unsigned long iVertex) const {
@@ -728,7 +762,7 @@ passivedouble CDriver::GetVertexNormalHeatFlux(unsigned short iMarker, unsigned 
 void CDriver::SetVertexNormalHeatFlux(unsigned short iMarker, unsigned long iVertex, passivedouble val_WallHeatFlux){
 
   // preCICE: non-dimensionalize before setting
-  geometry_container[ZONE_0][INST_0][MESH_0]->SetCustomBoundaryHeatFlux(iMarker, iVertex, val_WallHeatFlux * config_container[ZONE_0]->GetHeat_Flux_Ref());
+  geometry_container[ZONE_0][INST_0][MESH_0]->SetCustomBoundaryHeatFlux(iMarker, iVertex, val_WallHeatFlux / config_container[ZONE_0]->GetHeat_Flux_Ref());
 }
 
 passivedouble CDriver::GetThermalConductivity(unsigned short iMarker, unsigned long iVertex) const {
