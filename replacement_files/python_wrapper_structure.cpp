@@ -635,13 +635,15 @@ passivedouble CDriver::GetVertexTemperature(unsigned short iMarker, unsigned lon
     vertexWallTemp = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->GetTemperature(iPoint);
   }
 
-  return SU2_TYPE::GetValue(vertexWallTemp);
+  //preCICE: re-dimensionalize before returning
+  return SU2_TYPE::GetValue(vertexWallTemp * config_container[ZONE_0]->GetTemperature_Ref());
 
 }
 
 void CDriver::SetVertexTemperature(unsigned short iMarker, unsigned long iVertex, passivedouble val_WallTemp){
 
-  geometry_container[ZONE_0][INST_0][MESH_0]->SetCustomBoundaryTemperature(iMarker, iVertex, val_WallTemp);
+  // preCICE: non-dimensionalize before setting
+  geometry_container[ZONE_0][INST_0][MESH_0]->SetCustomBoundaryTemperature(iMarker, iVertex, val_WallTemp * config_container[ZONE_0]->GetTemperature_Ref());
 }
 
 vector<passivedouble> CDriver::GetVertexHeatFluxes(unsigned short iMarker, unsigned long iVertex) const {
@@ -671,9 +673,10 @@ vector<passivedouble> CDriver::GetVertexHeatFluxes(unsigned short iMarker, unsig
     }
   }
 
-  HeatFluxPassive[0] = SU2_TYPE::GetValue(HeatFlux[0]);
-  HeatFluxPassive[1] = SU2_TYPE::GetValue(HeatFlux[1]);
-  HeatFluxPassive[2] = SU2_TYPE::GetValue(HeatFlux[2]);
+  //preCICE: re-dimensionalize before returning
+  HeatFluxPassive[0] = SU2_TYPE::GetValue(HeatFlux[0] * config_container[ZONE_0]->GetHeat_Flux_Ref());
+  HeatFluxPassive[1] = SU2_TYPE::GetValue(HeatFlux[1] * config_container[ZONE_0]->GetHeat_Flux_Ref());
+  HeatFluxPassive[2] = SU2_TYPE::GetValue(HeatFlux[2] * config_container[ZONE_0]->GetHeat_Flux_Ref());
 
   return HeatFluxPassive;
 }
@@ -718,12 +721,14 @@ passivedouble CDriver::GetVertexNormalHeatFlux(unsigned short iMarker, unsigned 
     vertexWallHeatFlux = -thermal_conductivity*dTdn;
   }
 
-  return SU2_TYPE::GetValue(vertexWallHeatFlux);
+   //preCICE: re-dimensionalize before returning
+  return SU2_TYPE::GetValue(vertexWallHeatFlux * config_container[ZONE_0]->GetHeat_Flux_Ref());
 }
 
 void CDriver::SetVertexNormalHeatFlux(unsigned short iMarker, unsigned long iVertex, passivedouble val_WallHeatFlux){
 
-  geometry_container[ZONE_0][INST_0][MESH_0]->SetCustomBoundaryHeatFlux(iMarker, iVertex, val_WallHeatFlux);
+  // preCICE: non-dimensionalize before setting
+  geometry_container[ZONE_0][INST_0][MESH_0]->SetCustomBoundaryHeatFlux(iMarker, iVertex, val_WallHeatFlux * config_container[ZONE_0]->GetHeat_Flux_Ref());
 }
 
 passivedouble CDriver::GetThermalConductivity(unsigned short iMarker, unsigned long iVertex) const {
