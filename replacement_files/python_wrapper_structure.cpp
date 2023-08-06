@@ -674,6 +674,23 @@ passivedouble CDriver::GetVertexTemperature(unsigned short iMarker, unsigned lon
 
 }
 
+passivedouble CDriver::GetVertexPressure(unsigned short iMarker, unsigned long iVertex) const {
+
+  unsigned long iPoint;
+  su2double vertexWallPress(0.0);
+
+  bool compressible = (config_container[ZONE_0]->GetKind_Regime() == ENUM_REGIME::COMPRESSIBLE);
+
+  iPoint = geometry_container[ZONE_0][INST_0][MESH_0]->vertex[iMarker][iVertex]->GetNode();
+
+  if(geometry_container[ZONE_0][INST_0][MESH_0]->nodes->GetDomain(iPoint) && compressible){
+    vertexWallPress = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL]->GetNodes()->GetPressure(iPoint);
+  }
+
+  return SU2_TYPE::GetValue(vertexWallPress);
+
+}
+
 void CDriver::SetVertexTemperature(unsigned short iMarker, unsigned long iVertex, passivedouble val_WallTemp){
 
   // preCICE: non-dimensionalize before setting
