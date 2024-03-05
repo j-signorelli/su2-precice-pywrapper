@@ -13,6 +13,7 @@ This adapter has been designed to work when using the compressible solver for un
     - [preCICE](#precice)
     - [Adapter](#adapter)
 - [Running Simulations](#running-simulations)
+    - [Important Note on Restarts](#important-note-on-restarts)
     - [Fluid-Structure Interaction](#fluid-structure-interaction)
     - [Conjugate Heat Transfer](#conjugate-heat-transfer)
     - [Running in Parallel](#parallel)
@@ -50,7 +51,7 @@ To utilize the default FSI and CHT scripts anywhere, add to your ~/.bashrc:
 ## Running Simulations
 After successfully installing the adapted SU2, the default FSI/CHT scripts may be utilized. Note that these scripts currently are designed for a single coupling mesh, called *interface*. However it is extremely easy to update these scripts to handle a different BC name and/or multiple interfaces. They are provided simply for their ease of use.
 
-## Important Note on Restarts
+### Important Note on Restarts
 This code **has not been tested** for restarts using initializations *from* SU2. Any restarted simulations should have SU2 be the first participant and receive initialization data. It is possible that, if SU2 must send initialization data, that it is incorrect (it may use default values in the config file, or just be zeros if the data hasn't been computed until after/during a first iteration). Admittedly, this is from a lack of understanding of the specifics of how SU2 operates and there may not be a trivial work-around.
 
 ### Fluid-Structure Interaction
