@@ -50,6 +50,9 @@ To utilize the default FSI and CHT scripts anywhere, add to your ~/.bashrc:
 ## Running Simulations
 After successfully installing the adapted SU2, the default FSI/CHT scripts may be utilized. Note that these scripts currently are designed for a single coupling mesh, called *interface*. However it is extremely easy to update these scripts to handle a different BC name and/or multiple interfaces. They are provided simply for their ease of use.
 
+## Important Note on Restarts
+This code **has not been tested** for restarts using initializations *from* SU2. Any restarted simulations should have SU2 be the first participant and receive initialization data. It is possible that, if SU2 must send initialization data, that it is incorrect (it may use default values in the config file, or just be zeros if the data hasn't been computed until after/during a first iteration). Admittedly, this is from a lack of understanding of the specifics of how SU2 operates and there may not be a trivial work-around.
+
 ### Fluid-Structure Interaction
 #### SU2 Config File
 To set up a single-interface FSI problem for coupling with preCICE, the SU2 config file should have the following:
